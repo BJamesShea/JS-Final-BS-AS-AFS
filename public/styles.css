@@ -91,6 +91,7 @@ nav a:hover {
   background: #f6f6f6;
   padding: 6px;
   border-radius: 5px;
+  margin-left: 5px;
   cursor: pointer;
 }
 .main-content .button-container {
