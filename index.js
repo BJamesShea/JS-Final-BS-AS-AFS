@@ -1,110 +1,113 @@
-const express = require('express');
-const expressWs = require('express-ws');
-const path = require('path');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const bcrypt = require('bcrypt');
-
-const PORT = 3000;
-//TODO: Replace with the URI pointing to your own MongoDB setup
-const MONGO_URI = 'mongodb://localhost:27017/keyin_test';
+const express = require("express");
+const bodyParser = require("body-parser");
+const session = require("express-session");
+const WebSocket = require("express-ws");
+const path = require("path");
+const bcrypt = require("bcrypt");
 const app = express();
-expressWs(app);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.use(session({
-    secret: 'chat-app-secret',
+// Middleware setup
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+// Session setup
+app.use(
+  session({
+    secret: "your_secret_key",
     resave: false,
-    saveUninitialized: true
-}));
+    saveUninitialized: true,
+  })
+);
 
-let connectedClients = [];
+// Dummy data for users
+const users = [];
 
-//Note: These are (probably) not all the required routes, but are a decent starting point for the routes you'll probably need
-
-app.ws('/ws', (socket, request) => {    
-    socket.on('message', (rawMessage) => {
-        const parsedMessage = JSON.parse(rawMessage);
-        
+// WebSocket setup for real-time communication
+const { app: wsApp } = WebSocket(app);
+wsApp.ws("/chat", (ws, req) => {
+  // Handle WebSocket messages
+  ws.on("message", (msg) => {
+    wsApp.getWss().clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(msg);
+      }
     });
-
-    socket.on('close', () => {
-        
-    });
+  });
 });
 
-app.get('/', async (request, response) => {
-    response.render('index/unauthenticated');
+// Routes
+app.get("/", (req, res) => {
+  res.render("unauthenticated", { title: "Dashboard" });
 });
 
-app.get('/login', async (request, response) => {
-    
+app.get("/login", (req, res) => {
+  res.render("unauthenticated", { title: "Login" });
 });
 
-app.get('/signup', async (request, response) => {
-    return response.render('signup', {errorMessage: null});
+app.get("/signup", (req, res) => {
+  res.render("signup");
 });
 
-app.post('/signup', async (request, response) => {
+app.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
 
+  // Check for existing username
+  const existingUser = users.find((user) => user.username === username);
+  if (existingUser) {
+    return res.render("signup", { error: "Username already exists" });
+  }
+
+  // Hash password and save new user
+  const hashedPassword = await bcrypt.hash(password, 10);
+  users.push({ username, password: hashedPassword, role: "user" });
+  req.session.user = { username, role: "user" };
+  res.redirect("/chat");
 });
 
-app.get('/dashboard', async (request, response) => {
-
-    return response.render('index/authenticated');
+app.get("/chat", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/");
+  }
+  res.render("authenticated", { username: req.session.user.username });
 });
 
-app.get('/profile', async (request, response) => {
-    
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) return res.redirect("/chat");
+    res.clearCookie("connect.sid");
+    res.redirect("/");
+  });
 });
 
-app.post('/logout', (request, response) => {
-
+// Admin Routes
+app.get("/admin", (req, res) => {
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.redirect("/chat");
+  }
+  res.render("admin", { users });
 });
 
-mongoose.connect(MONGO_URI)
-    .then(() => app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`)))
-    .catch((err) => console.error('MongoDB connection error:', err));
+app.post("/admin/remove-user", (req, res) => {
+  const { username } = req.body;
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.redirect("/chat");
+  }
+  const index = users.findIndex((user) => user.username === username);
+  if (index !== -1) {
+    users.splice(index, 1);
+  }
+  res.redirect("/admin");
+});
 
-/**
- * Handles a client disconnecting from the chat server
- * 
- * This function isn't necessary and should be deleted if unused. But it's left as a hint to how you might want 
- * to handle the disconnection of clients
- * 
- * @param {string} username The username of the client who disconnected
- */
-function onClientDisconnected(username) {
-   
-}
+// 404 handler for undefined routes
+app.use((req, res) => {
+  res.status(404).send("Page not found");
+});
 
-/**
- * Handles a new client connecting to the chat server
- * 
- * This function isn't necessary and should be deleted if unused. But it's left as a hint to how you might want 
- * to handle the connection of clients
- * 
- * @param {WebSocket} newSocket The socket the client has opened with the server
- * @param {string} username The username of the user who connected
- */
-function onNewClientConnected(newSocket, username) {
-    
-}
-
-/**
- * Handles a new chat message being sent from a client
- * 
- * This function isn't necessary and should be deleted if unused. But it's left as a hint to how you might want 
- * to handle new messages
- * 
- * @param {string} message The message being sent
- * @param {string} username The username of the user who sent the message
- * @param {strng} id The ID of the user who sent the message
- */
-async function onNewMessage(message, username, id) {
-    
-}
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
