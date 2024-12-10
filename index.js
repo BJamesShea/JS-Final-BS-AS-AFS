@@ -6,6 +6,7 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const app = express();
 
+
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -53,7 +54,13 @@ app.get("/signup", (req, res) => {
 app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
 
-  // Check for existing username
+  // Validate input
+  if(!username || !password) {
+    return.res.render("signup",{error: "All fields are required"});
+  }
+
+  try {
+    // Check for existing username
   const existingUser = users.find((user) => user.username === username);
   if (existingUser) {
     return res.render("signup", { error: "Username already exists" });
@@ -61,9 +68,16 @@ app.post("/signup", async (req, res) => {
 
   // Hash password and save new user
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  
   users.push({ username, password: hashedPassword, role: "user" });
   req.session.user = { username, role: "user" };
+  
   res.redirect("/chat");
+  } catch (error) {
+    console.error(error);
+    res.render("signup", {error: "Something went wrong. Please try again."});
+  }
 });
 
 app.get("/chat", (req, res) => {
