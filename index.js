@@ -11,6 +11,24 @@ const url = "mongodb://localhost:27017";
 const client = new MongoClient(url);
 const dbName = "chat_app";
 
+// Connect to DB
+
+async function connectToMongoDB() {
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB!");
+
+    const db = client.db(dbName);
+    const collections = await db.listCollections().toArray();
+    console.log("Collections:", collections);
+  } catch (error) {
+    console.error("Error connection to Database:", error.message);
+    process.exit(1);
+  }
+}
+
+connectToMongoDB();
+
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
