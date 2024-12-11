@@ -6,6 +6,28 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const app = express();
 
+const { MongoClient } = require("mongodb");
+const url = "mongodb://localhost:27017";
+const client = new MongoClient(url);
+const dbName = "chat_app";
+
+// Connect to DB
+
+async function connectToMongoDB() {
+  try {
+    await client.connect();
+    console.log("Connected to MongoDB!");
+
+    const db = client.db(dbName);
+    const collections = await db.listCollections().toArray();
+    console.log("Collections:", collections);
+  } catch (error) {
+    console.error("Error connection to Database:", error.message);
+    process.exit(1);
+  }
+}
+
+connectToMongoDB();
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -55,28 +77,27 @@ app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
 
   // Validate input
-  if(!username || !password) {
-    return.res.render("signup",{error: "All fields are required"});
+  if (!username || !password) {
+    return res.render("signup", { error: "All fields are required" });
   }
 
   try {
     // Check for existing username
-  const existingUser = users.find((user) => user.username === username);
-  if (existingUser) {
-    return res.render("signup", { error: "Username already exists" });
-  }
+    const existingUser = users.find((user) => user.username === username);
+    if (existingUser) {
+      return res.render("signup", { error: "Username already exists" });
+    }
 
-  // Hash password and save new user
-  const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password and save new user
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  
-  users.push({ username, password: hashedPassword, role: "user" });
-  req.session.user = { username, role: "user" };
-  
-  res.redirect("/chat");
+    users.push({ username, password: hashedPassword, role: "user" });
+    req.session.user = { username, role: "user" };
+
+    res.redirect("/chat");
   } catch (error) {
     console.error(error);
-    res.render("signup", {error: "Something went wrong. Please try again."});
+    res.render("signup", { error: "Something went wrong. Please try again." });
   }
 });
 
