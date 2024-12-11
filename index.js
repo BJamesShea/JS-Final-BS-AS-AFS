@@ -6,6 +6,11 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const app = express();
 
+const { MongoClient } = require("mongodb");
+const url = "mongodb://localhost:27017";
+const client = new MongoClient(url);
+const dbName = "chat_app";
+
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
