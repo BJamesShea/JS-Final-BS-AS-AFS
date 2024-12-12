@@ -208,11 +208,12 @@ app.get("/admin", requireLogin, async (req, res) => {
 
 app.post("/admin/remove-user", requireLogin, async(req, res) => {
   const { username } = req.body;
-  if (req.session.user.role !== "admin") {
-    return res.redirect("/chat");
-  }
+  
   try {
-    await User.deleteOne({ username: req.body.username});
+    if (!username) {
+      return.res.status(404).send("Invalid request.");
+    }
+    await User.deleteOne({ username });
     res.redirect("/admin");
   } catch(error) {
     console.error(error);
