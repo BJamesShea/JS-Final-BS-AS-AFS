@@ -99,8 +99,35 @@ app.get("/", (req, res) => {
   res.render("unauthenticated", { title: "Dashboard" });
 });
 
-app.get("/login", (req, res) => {
-  res.render("unauthenticated", { title: "Login" });
+app.get("/unauthenticated", (req, res) => {
+  res.render("unauthenticated", { errorMessage: null });
+});
+
+// Login route logic
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+
+  // Handle missing input
+  if (!username || !password) {
+    return res.render("unauthenticated", {
+      errorMessage: "Username and password are required.",
+    });
+  }
+
+  // Simulated authentication check
+  if (username !== "testuser" || password !== "testpassword") {
+    return res.render("unauthenticated", {
+      errorMessage: "Invalid username or password.",
+    });
+  }
+
+  // Redirect to dashboard on successful login
+  res.redirect("/dashboard");
+});
+
+// Example dashboard route (just for completeness)
+app.get("/dashboard", (req, res) => {
+  res.send("<h1>Welcome to the Dashboard</h1>");
 });
 
 app.get("/signup", (req, res) => {

@@ -1,8 +1,26 @@
-<%- include('partials/header', { title: "Dashboard" }) %>
+<%- include('partials/header', { title: "Home" }) %>
 
 <div class="main-content">
   <h1>Welcome to the Socket Chat</h1>
   <p>Log in or register to begin chatting! Currently XX users online.</p>
-  <button onclick="window.location.href='/login'">Login</button> or
-  <button onclick="window.location.href='/signup'">SignUp</button>
+  <form action="/login" method="post" style="width: 300px">
+    <% if (typeof errorMessage !== "undefined" && errorMessage) { %>
+    <p class="error-message"><%= errorMessage %></p>
+    <% } %>
+    <div class="form-input-container">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required />
+    </div>
+    <div class="form-input-container">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required />
+    </div>
+    <button type="submit" class="action-button full-width">Log In</button>
+  </form>
+  <button
+    onclick="window.location.href='/signup'"
+    class="action-button full-width"
+  >
+    Sign Up
+  </button>
 </div>
