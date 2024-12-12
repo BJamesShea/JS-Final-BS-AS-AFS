@@ -10,10 +10,7 @@ const mongoose = require("mongoose");
 
 // Connect to MongoDB using Mongoose
 const mongoURI = "mongodb://localhost:27017/chat_app";
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect(mongoURI, {});
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection error:"));
@@ -42,27 +39,24 @@ db.once("open", () => {
 // }
 // connectToMongoDB();
 
-
 // User Model
 const userSchema = new mongoose.Schema({
-  username: {type: String, required: true, unique: true},
-  password: {type: String, required: true},
-  role: {type: String, default: "user"},
-  createdAt: {type: Date, default: Date.now},
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: "user" },
+  createdAt: { type: Date, default: Date.now },
 });
 
 // Hash password before saving user
-userSchema.pre("save",async function (next) {
+userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     const saltRounds = 10;
     this.password = await bcrypt.hash(this.password, saltRounds);
   }
   next();
-})
-
+});
 
 const User = mongoose.model("User", userSchema);
-
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -82,7 +76,7 @@ app.use(
 // Middleware for authentication to ensure users are logged in before they can access profile
 const requireLogin = (request, response, next) => {
   if (!request.session.user) {
-    return response.redirect('/login');
+    return response.redirect("/login");
   }
   next();
 };
@@ -110,42 +104,45 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/signup", (req, res) => {
-  res.render("signup", {title: "Signup"});
+  res.render("signup", { errorMessage: null }); // Ensure errorMessage is always defined
 });
 
 app.post("/signup", async (request, response) => {
   const { username, password } = request.body;
 
-  // Validate input
   if (!username || !password) {
-    return response.render("signup", { error: "All fields are required" });
+    return response.render("signup", {
+      errorMessage: "All fields are required",
+    });
   }
 
   try {
-    // Check for existing username
-    const existingUser = await User.findOne({username});
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return response.render("signup", { error: "Username already exists" });
+      return response.render("signup", {
+        errorMessage: "Username already exists",
+      });
     }
 
-    // Save new user to db
-    const newUser = new User({username, password});
+    const newUser = new User({ username, password });
     await newUser.save();
 
-    // Save user info in session
     request.session.user = { username, role: "user" };
-
     response.redirect("/chat");
   } catch (error) {
     console.error(error);
-    response.render("signup", { error: "Something went wrong. Please try again." });
+    response.render("signup", {
+      errorMessage: "Something went wrong. Please try again.",
+    });
   }
 });
 
 // Route for User to view their own profile
 app.get("/profile", requireLogin, async (request, response) => {
   try {
-    const user = await User.findOne({username: request.session.user.username});
+    const user = await User.findOne({
+      username: request.session.user.username,
+    });
     if (!user) {
       return response.status(404).send("User not found.");
     }
@@ -162,7 +159,7 @@ app.get("/profile", requireLogin, async (request, response) => {
 // Route for User to view another user's profile
 app.get("/profile/:username", requireLogin, async (request, response) => {
   try {
-    const user = await User.findOne({username: request.params.username});
+    const user = await User.findOne({ username: request.params.username });
     if (!user) {
       return response.status(404).send("User not found");
     }
@@ -174,7 +171,7 @@ app.get("/profile/:username", requireLogin, async (request, response) => {
     console.error(error);
     response.status(500).send("Server error");
   }
-})
+});
 
 app.get("/chat", (req, res) => {
   if (!req.session.user) {
@@ -196,7 +193,7 @@ app.get("/admin", requireLogin, async (req, res) => {
   if (req.session.user.role !== "admin") {
     return res.redirect("/chat");
   }
-  
+
   try {
     const users = await User.find();
     res.render("admin", { users });
@@ -206,16 +203,16 @@ app.get("/admin", requireLogin, async (req, res) => {
   }
 });
 
-app.post("/admin/remove-user", requireLogin, async(req, res) => {
+app.post("/admin/remove-user", requireLogin, async (req, res) => {
   const { username } = req.body;
-  
+
   try {
     if (!username) {
       return res.status(404).send("Invalid request.");
     }
     await User.deleteOne({ username });
     res.redirect("/admin");
-  } catch(error) {
+  } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
   }
