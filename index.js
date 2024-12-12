@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Hash password before saving user
+// Hash passwords
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     const saltRounds = 10;
@@ -58,6 +58,15 @@ userSchema.pre("save", async function (next) {
 });
 
 const User = mongoose.model("User", userSchema);
+
+// TEMPORARY Message Schema
+const messageSchema = new mongoose.Schema({
+  sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Message = mongoose.model("Message", messageSchema);
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -162,6 +171,26 @@ app.post("/signup", async (request, response) => {
     response.render("signup", {
       errorMessage: "Something went wrong. Please try again.",
     });
+  }
+});
+
+// Route to test Message schema
+app.post("/test-message", async (req, res) => {
+  try {
+    const testSenderId = "64a12345b678c9012d345678"; // to be replaced with valid user ID
+    const testContent = "Hello, this is a test message!";
+
+    const message = new Message({
+      sender: testSenderId,
+      content: testContent,
+    });
+    await message.save();
+
+    console.log("Message saved:", message);
+    res.status(201).send("Message saved successfully");
+  } catch (error) {
+    console.error("Error saving message:", error);
+    res.status(500).send("Error saving message");
   }
 });
 
