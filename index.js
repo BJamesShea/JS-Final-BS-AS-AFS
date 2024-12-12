@@ -121,7 +121,7 @@ app.post("/signup", async (request, response) => {
 
   try {
     // Check for existing username
-    const existingUser = users.find((user) => user.username === username);
+    const existingUser = await User.findOne({username});
     if (existingUser) {
       return response.render("signup", { error: "Username already exists" });
     }
@@ -190,8 +190,8 @@ app.post("/logout", (req, res) => {
 });
 
 // Admin Routes
-app.get("/admin", requireLogin (req, res) => {
-  if (!req.session.user || req.session.user.role !== "admin") {
+app.get("/admin", requireLogin, async (req, res) => {
+  if (req.session.user.role !== "admin") {
     return res.redirect("/chat");
   }
   
@@ -204,13 +204,13 @@ app.get("/admin", requireLogin (req, res) => {
   }
 });
 
-app.post("/admin/remove-user", requireLogin (req, res) => {
+app.post("/admin/remove-user", requireLogin, async(req, res) => {
   const { username } = req.body;
-  if (!req.session.user || req.session.user.role !== "admin") {
+  if (req.session.user.role !== "admin") {
     return res.redirect("/chat");
   }
   try {
-    await.User.deleteOne({ username: req.body.username});
+    await User.deleteOne({ username: req.body.username});
     rs.redirect("/admin");
   } catch(error) {
     console.error(error);
