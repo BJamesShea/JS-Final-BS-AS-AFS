@@ -76,7 +76,7 @@ app.use(
 // Middleware for authentication to ensure users are logged in before they can access profile
 const requireLogin = (request, response, next) => {
   if (!request.session.user) {
-    return response.redirect("/login");
+    return response.redirect("/unauthenticated");
   }
   next();
 };
