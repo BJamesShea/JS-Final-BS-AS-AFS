@@ -42,6 +42,15 @@ db.once("open", () => {
 // }
 // connectToMongoDB();
 
+// Hash password before saving user
+userSchema.pre("save",async function (next) {
+  if (this.isModified("password")) {
+    const saltRounds = 10;
+    this.password = await bcrypt.hash(this.password, saltRounds);
+  }
+  next();
+})
+
 // User Model
 const userSchema = new mongoose.Schema({
   username: {type: String, required: true, unique: true},
@@ -52,14 +61,6 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
-// Hash password before saving user
-userSchema.pre("save",async function (next) {
-  if (this.isModified("password")) {
-    const saltRounds = 10;
-    this.password = await bcrypt.hash(this.password, saltRounds);
-  }
-  next();
-})
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -208,11 +209,13 @@ app.post("/admin/remove-user", requireLogin (req, res) => {
   if (!req.session.user || req.session.user.role !== "admin") {
     return res.redirect("/chat");
   }
-  const index = users.findIndex((user) => user.username === username);
-  if (index !== -1) {
-    users.splice(index, 1);
+  try {
+    await.User.deleteOne({ username: req.body.username});
+    rs.redirect("/admin");
+  } catch(error) {
+    console.error(error);
+    res.status(500).send("Server error");
   }
-  res.redirect("/admin");
 });
 
 // 404 handler for undefined routes
