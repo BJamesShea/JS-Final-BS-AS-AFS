@@ -144,6 +144,20 @@ app.get("/signup", (req, res) => {
   res.render("signup", { errorMessage: null }); // Ensure errorMessage is always defined
 });
 
+// temp(?) route to fetch all messages.
+app.get("/messages", async (req, res) => {
+  try {
+    const messages = await Message.find()
+      .populate("sender", "username")
+      .sort({ createdAt: 1 });
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).send("Error fetching messages");
+  }
+});
+
 app.post("/signup", async (request, response) => {
   const { username, password } = request.body;
 
