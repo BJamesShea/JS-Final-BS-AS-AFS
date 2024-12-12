@@ -211,7 +211,7 @@ app.post("/admin/remove-user", requireLogin, async(req, res) => {
   
   try {
     if (!username) {
-      return.res.status(404).send("Invalid request.");
+      return res.status(404).send("Invalid request.");
     }
     await User.deleteOne({ username });
     res.redirect("/admin");
