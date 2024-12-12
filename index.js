@@ -16,6 +16,7 @@ const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection error:"));
 db.once("open", () => {
   console.log("Connected to MongoDB via Mongoose!");
+  console.log("http://localhost:3000/");
 });
 
 //--Saving this code in case mongoose connection fails--
@@ -201,10 +202,13 @@ app.get("/profile/:username", requireLogin, async (request, response) => {
 });
 
 app.get("/chat", (req, res) => {
+  console.log("Hit /chat route");
   if (!req.session.user) {
+    console.log("User not logged in. Redirecting...");
     return res.redirect("/");
   }
-  res.render("authenticated", { username: req.session.user.username });
+  console.log("Rendering chat.ejs for user:", req.session.user.username);
+  res.render("chat", { username: req.session.user.username });
 });
 
 app.post("/logout", (req, res) => {
