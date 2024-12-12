@@ -1,0 +1,37 @@
+<%- include('partials/header', { title: "Admin" }) %>
+
+<div class="main-content">
+    <h1>Admin Dashboard</h1>
+    <p></p>
+    <h2>Registered Users:</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Join Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% users.forEach(user => { %>
+                <tr>
+                    <td><%= user.username %></td>
+                    <td><%= user.role %></td>
+                    <td><%= user.createdAt.toDateString() %></td>
+                    <td>
+                        <% if (user.role !== "admin") { %>
+                            <form action="/admin/remove-user" method="POST" style="display:inline;">
+                                <input type="hidden" name="username" value="<%= user.username %>">
+                                <button type="submit">Remove</button>
+                            </form>    
+                        <% } else { %>
+                            <em>Admin</em>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+    <a href="/chat">Chat</a>
+</div>
