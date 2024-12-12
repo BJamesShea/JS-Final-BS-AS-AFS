@@ -6,28 +6,60 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const app = express();
 
-const { MongoClient } = require("mongodb");
-const url = "mongodb://localhost:27017";
-const client = new MongoClient(url);
-const dbName = "chat_app";
+const mongoose = require("mongoose");
 
+// Connect to MongoDB using Mongoose
+const mongoURI = "mongodb://localhost:27017/chat_app";
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const db = mongoose.connection;
+db.on("error", console.error.bind(console, "Connection error:"));
+db.once("open", () => {
+  console.log("Connected to MongoDB via Mongoose!");
+});
+
+//--Saving this code in case mongoose connection fails--
+// const { MongoClient } = require("mongodb");
+// const url = "mongodb://localhost:27017";
+// const client = new MongoClient(url);
+// const dbName = "chat_app";
 // Connect to DB
+// async function connectToMongoDB() {
+//   try {
+//     await client.connect();
+//     console.log("Connected to MongoDB!");
 
-async function connectToMongoDB() {
-  try {
-    await client.connect();
-    console.log("Connected to MongoDB!");
+//     const db = client.db(dbName);
+//     const collections = await db.listCollections().toArray();
+//     console.log("Collections:", collections);
+//   } catch (error) {
+//     console.error("Error connection to Database:", error.message);
+//     process.exit(1);
+//   }
+// }
+// connectToMongoDB();
 
-    const db = client.db(dbName);
-    const collections = await db.listCollections().toArray();
-    console.log("Collections:", collections);
-  } catch (error) {
-    console.error("Error connection to Database:", error.message);
-    process.exit(1);
+// User Model
+const userSchema = new mongoose.Schema({
+  username: {type: String, required: true, unique: true},
+  password: {type: String, required: true},
+  role: {type: String, default: "user"},
+  createdAt: {type: Date, default: Date.now},
+});
+
+const User = mongoose.model("User", userSchema);
+
+// Hash password before saving user
+userSchema.pre("save",async function (next) {
+  if (this.isModified("password")) {
+    const saltRounds = 10;
+    this.password = await bcrypt.hash(this.password, saltRounds);
   }
-}
-
-connectToMongoDB();
+  next();
+})
 
 // Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -43,16 +75,6 @@ app.use(
     saveUninitialized: true,
   })
 );
-
-// User Model
-const userSchema = new mongoose.Schema({
-  username: {type: String, required: true, unique: true},
-  password: {type: String, required: true},
-  role: {type: String, default: "user"},
-  createdAt: {type: Date, default: Date.now},
-});
-
-const User = mongoose.model("User", userSchema);
 
 // Middleware for authentication to ensure users are logged in before they can access profile
 const requireLogin = (request, response, next) => {
@@ -88,36 +110,37 @@ app.get("/signup", (req, res) => {
   res.render("signup", {title: "Signup"});
 });
 
-app.post("/signup", async (req, res) => {
-  const { username, password } = req.body;
+app.post("/signup", async (request, response) => {
+  const { username, password } = request.body;
 
   // Validate input
   if (!username || !password) {
-    return res.render("signup", { error: "All fields are required" });
+    return response.render("signup", { error: "All fields are required" });
   }
 
   try {
     // Check for existing username
     const existingUser = users.find((user) => user.username === username);
     if (existingUser) {
-      return res.render("signup", { error: "Username already exists" });
+      return response.render("signup", { error: "Username already exists" });
     }
 
-    // Hash password and save new user
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Save new user to db
+    const newUser = new User({username, password});
+    await newUser.save();
 
-    users.push({ username, password: hashedPassword, role: "user" });
-    req.session.user = { username, role: "user" };
+    // Save user info in session
+    request.session.user = { username, role: "user" };
 
-    res.redirect("/chat");
+    response.redirect("/chat");
   } catch (error) {
     console.error(error);
-    res.render("signup", { error: "Something went wrong. Please try again." });
+    response.render("signup", { error: "Something went wrong. Please try again." });
   }
 });
 
 // Route for User to view their own profile
-app.get("/profile",requireLogin, async (request, response) => {
+app.get("/profile", requireLogin, async (request, response) => {
   try {
     const user = await User.findOne({username: request.session.user.username});
     if (!user) {
@@ -166,14 +189,21 @@ app.post("/logout", (req, res) => {
 });
 
 // Admin Routes
-app.get("/admin", (req, res) => {
+app.get("/admin", requireLogin (req, res) => {
   if (!req.session.user || req.session.user.role !== "admin") {
     return res.redirect("/chat");
   }
-  res.render("admin", { users });
+  
+  try {
+    const users = await User.find();
+    res.render("admin", { users });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
 });
 
-app.post("/admin/remove-user", (req, res) => {
+app.post("/admin/remove-user", requireLogin (req, res) => {
   const { username } = req.body;
   if (!req.session.user || req.session.user.role !== "admin") {
     return res.redirect("/chat");
