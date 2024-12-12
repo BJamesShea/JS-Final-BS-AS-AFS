@@ -213,7 +213,7 @@ app.post("/admin/remove-user", requireLogin, async(req, res) => {
   }
   try {
     await User.deleteOne({ username: req.body.username});
-    rs.redirect("/admin");
+    res.redirect("/admin");
   } catch(error) {
     console.error(error);
     res.status(500).send("Server error");
