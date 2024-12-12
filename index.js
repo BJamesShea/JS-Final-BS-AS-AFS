@@ -134,7 +134,21 @@ app.get("/profile",requireLogin, async (request, response) => {
 });
 
 // Route for User to view another user's profile
-
+app.get("/profile/:username", requireLogin, async (request, response) => {
+  try {
+    const user = await User.findOne({username: request.params.username});
+    if (!user) {
+      return response.status(404).send("User not found");
+    }
+    response.render("profile", {
+      username: user.username,
+      joinDate: user.createdAt.toDateString(),
+    });
+  } catch (error) {
+    console.error(error);
+    response.status(500).send("Server error");
+  }
+})
 
 app.get("/chat", (req, res) => {
   if (!req.session.user) {
