@@ -54,6 +54,14 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
+// Middleware for authentication to ensure users are logged in before they can access profile
+const requireLogin = (request, response, next) => {
+  if (!request.session.user) {
+    return response.redirect('/login');
+  }
+  next();
+};
+
 // WebSocket setup for real-time communication
 const { app: wsApp } = WebSocket(app);
 wsApp.ws("/chat", (ws, req) => {
@@ -107,6 +115,26 @@ app.post("/signup", async (req, res) => {
     res.render("signup", { error: "Something went wrong. Please try again." });
   }
 });
+
+// Route for User to view their own profile
+app.get("/profile",requireLogin, async (request, response) => {
+  try {
+    const user = await User.findOne({username: request.session.user.username});
+    if (!user) {
+      return response.status(404).send("User not found.");
+    }
+    response.render("profile", {
+      username: user.username,
+      joinDate: user.createdAt.toDateString(),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+});
+
+// Route for User to view another user's profile
+
 
 app.get("/chat", (req, res) => {
   if (!req.session.user) {
