@@ -112,8 +112,11 @@ expressWs.app.ws("/chat", (ws, req) => {
     try {
       const { senderId, content } = JSON.parse(msg);
 
+      // Convert senderId to a valid MongoDB ObjectId (if it's a string)
+      const objectIdSender = new mongoose.Types.ObjectId(senderId); // Correct usage with `new`
+
       const message = new Message({
-        sender: senderId,
+        sender: objectIdSender, // Properly set the sender to the ObjectId
         content,
       });
 
@@ -126,6 +129,7 @@ expressWs.app.ws("/chat", (ws, req) => {
         createdAt: message.createdAt,
       };
 
+      // Broadcast the message to all connected clients
       expressWs.getWss().clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(broadcastMessage));
@@ -171,14 +175,14 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    req.session.user = { username: user.username, role: user.role };
+    // Store the MongoDB ObjectId (sender's ID) in the session
+    req.session.user = {
+      username: user.username,
+      role: user.role,
+      userId: user._id, // This is the MongoDB ObjectId
+    };
 
-    // Redirect based on role
-    if (user.role === "admin") {
-      return res.redirect("/admin");
-    } else {
-      return res.redirect("/chat");
-    }
+    return res.redirect("/chat");
   } catch (error) {
     console.error("Error during login:", error.message);
     res.render("unauthenticated", {
@@ -243,7 +247,7 @@ app.post("/signup", async (request, response) => {
 // Route to test Message schema
 app.post("/test-message", async (req, res) => {
   try {
-    const testSenderId = "675c7293036557d4b2bcc006"; // to be replaced with valid user ID
+    const testSenderId = "675c71c670fdab4eca4f52d2"; // to be replaced with valid user ID
     const testContent = "Hello, this is a test message!";
 
     const message = new Message({
@@ -298,12 +302,18 @@ app.get("/profile/:username", requireLogin, async (request, response) => {
 
 app.get("/chat", (req, res) => {
   console.log("Hit /chat route");
+
   if (!req.session.user) {
     console.log("User not logged in. Redirecting...");
     return res.redirect("/");
   }
+
   console.log("Rendering chat.ejs for user:", req.session.user.username);
-  res.render("chat", { username: req.session.user.username });
+  // Pass userId as part of the render context
+  res.render("chat", {
+    username: req.session.user.username,
+    userId: req.session.user.userId, // Pass the userId here
+  });
 });
 
 app.get("/logout", (req, res) => {

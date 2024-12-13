@@ -12,7 +12,8 @@
     <main>
       <h1>Welcome to the Chat, <%= username %>!</h1>
       <div id="chat-container">
-        <div id="messages"></div>
+        <div id="message-list"></div>
+
         <form id="message-form">
           <input
             type="text"
@@ -24,6 +25,11 @@
         </form>
       </div>
     </main>
+
     <script src="/frontend.js"></script>
+    <script>
+      // Pass the userId from the server to the frontend JavaScript
+      const userId = "<%= userId %>"; // The ObjectId of the logged-in user
+    </script>
   </body>
 </html>
