@@ -11,9 +11,9 @@ webSocket.addEventListener("message", (event) => {
   const eventData = JSON.parse(event.data);
   // Handle the received message
   onNewMessageReceived(
-    eventData.sender,
-    eventData.createdAt,
-    eventData.content
+    eventData.sender, // Username of the sender
+    eventData.createdAt, // Timestamp of when the message was sent
+    eventData.content // The content of the message
   );
 });
 
