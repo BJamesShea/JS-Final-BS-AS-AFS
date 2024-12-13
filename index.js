@@ -305,6 +305,36 @@ app.post("/logout", (req, res) => {
 });
 
 // Admin Routes
+app.get("/create-admin", async (req,res) => {
+  try {
+    // Check if the admin already exists
+    const existingAdmin = await User.findOne({role: "admin"});
+      if (existingAdmin) {
+        return res.send("Admin user already exists.");
+      }
+
+      // Create admin user
+      const adminUsername = "admin";
+      const adminPassword = "admin123";
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      const adminUser = new User({
+        username: adminUsername,
+        password: hashedPassword,
+        role: "admin",
+      });
+
+      await adminUser.save();
+      console.log("Admin user created successfully:", adminUser);
+
+      res.send("Admin user created successfully.");
+    
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+    res.status(500).send("Error creating admin user.");
+  }
+});
+
 app.get("/admin", requireLogin, async (req, res) => {
   if (req.session.user.role !== "admin") {
     return res.redirect("/chat");
