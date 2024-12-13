@@ -314,11 +314,10 @@ app.get("/create-admin", async (req,res) => {
       // Create admin user
       const adminUsername = "admin";
       const adminPassword = "admin123";
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
       const adminUser = new User({
         username: adminUsername,
-        password: hashedPassword,
+        password: adminPassword,
         role: "admin",
       });
 
