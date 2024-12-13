@@ -243,7 +243,7 @@ app.post("/signup", async (request, response) => {
 // Route to test Message schema
 app.post("/test-message", async (req, res) => {
   try {
-    const testSenderId = "64a12345b678c9012d345678"; // to be replaced with valid user ID
+    const testSenderId = "675c7293036557d4b2bcc006"; // to be replaced with valid user ID
     const testContent = "Hello, this is a test message!";
 
     const message = new Message({
