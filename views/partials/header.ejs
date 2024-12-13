@@ -7,12 +7,17 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <nav>
-      <a href="/profile">Profile</a>
-      <a href="/chat">Chat</a>
-      <a href="/admin">Admin Dashboard</a>
-      <a href="/logout">Log out</a>
-    </nav>
+    <header>
+      <nav>
+        <a href="/profile">Profile</a>
+        <a href="/chat">Chat</a>
+        <% if (user && user.role === 'admin') { %>
+        <a href="/admin">Admin Dashboard</a>
+        <% } %>
+        <a href="/logout">Logout</a>
+      </nav>
+    </header>
+
     <main class="main-content">
       <!-- Page content will go here -->
     </main>

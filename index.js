@@ -91,6 +91,19 @@ const requireLogin = (request, response, next) => {
   next();
 };
 
+// Make the user object available in all views
+app.use((req, res, next) => {
+  res.locals.user = req.session.user || null; // Expose user session in templates
+  next();
+});
+
+app.get("/admin/dashboard", requireLogin, (req, res) => {
+  if (req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+  res.render("admin-dashboard", { title: "Admin Dashboard" });
+});
+
 // WebSocket setup for real-time communication
 const expressWs = WebSocket(app);
 
