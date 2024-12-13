@@ -134,25 +134,23 @@ app.get("/unauthenticated", (req, res) => {
 });
 
 // Login route logic
-app.post("login", async (req,res) => {
-  const {username, password} = req.body;
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
 
-  if (!username || password) {
+  if (!username || !password) {
     return res.render("unauthenticated", {
       errorMessage: "Username and password are required.",
     });
   }
 
   try {
-    // Check if user exists in db
-    const user = await User.findOne({username});
+    const user = await User.findOne({ username });
     if (!user) {
       return res.render("unauthenticated", {
         errorMessage: "Invalid username or password.",
       });
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.render("unauthenticated", {
@@ -160,22 +158,22 @@ app.post("login", async (req,res) => {
       });
     }
 
-    // Save user's info in session
-    req.session.user = {username: user.username, role: user.role};
+    req.session.user = { username: user.username, role: user.role };
 
     // Redirect based on role
     if (user.role === "admin") {
       return res.redirect("/admin");
     } else {
-      return res.redirect("/chat")
+      return res.redirect("/chat");
     }
   } catch (error) {
-    console.error("Error during login: ", error);
+    console.error("Error during login:", error.message);
     res.render("unauthenticated", {
-      errorMessage: "An error occured during login, please try again.",
+      errorMessage: "An error occurred. Please try again.",
     });
   }
 });
+
 
 // Example dashboard route (just for completeness)
 app.get("/dashboard", (req, res) => {
