@@ -174,7 +174,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-
 // Example dashboard route (just for completeness)
 app.get("/dashboard", (req, res) => {
   res.send("<h1>Welcome to the Dashboard</h1>");
@@ -294,38 +293,58 @@ app.get("/chat", (req, res) => {
   res.render("chat", { username: req.session.user.username });
 });
 
-app.post("/logout", (req, res) => {
+app.get("/logout", (req, res) => {
+  // Destroy the session
   req.session.destroy((err) => {
-    if (err) return res.redirect("/chat");
+    if (err) {
+      console.error("Error during session destruction:", err);
+      return res.redirect("/profile"); // Redirect back if there's an error
+    }
+    // Clear the session cookie
     res.clearCookie("connect.sid");
-    res.redirect("/");
+    // Redirect to the login page
+    res.redirect("/unauthenticated");
   });
 });
 
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/login");
+}
+
+// Protect routes
+app.get("/profile", isAuthenticated, (req, res) => {
+  res.render("profile", { user: req.user });
+});
+app.get("/chat", isAuthenticated, (req, res) => {
+  res.render("chat");
+});
+
 // Admin Routes
-app.get("/create-admin", async (req,res) => {
+app.get("/create-admin", async (req, res) => {
   try {
     // Check if the admin already exists
-    const existingAdmin = await User.findOne({role: "admin"});
-      if (existingAdmin) {
-        return res.send("Admin user already exists.");
-      }
+    const existingAdmin = await User.findOne({ role: "admin" });
+    if (existingAdmin) {
+      return res.send("Admin user already exists.");
+    }
 
-      // Create admin user
-      const adminUsername = "admin";
-      const adminPassword = "admin123";
+    // Create admin user
+    const adminUsername = "admin";
+    const adminPassword = "admin123";
 
-      const adminUser = new User({
-        username: adminUsername,
-        password: adminPassword,
-        role: "admin",
-      });
+    const adminUser = new User({
+      username: adminUsername,
+      password: adminPassword,
+      role: "admin",
+    });
 
-      await adminUser.save();
-      console.log("Admin user created successfully:", adminUser);
+    await adminUser.save();
+    console.log("Admin user created successfully:", adminUser);
 
-      res.send("Admin user created successfully.");
-    
+    res.send("Admin user created successfully.");
   } catch (error) {
     console.error("Error creating admin user:", error);
     res.status(500).send("Error creating admin user.");
