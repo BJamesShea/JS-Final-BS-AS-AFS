@@ -92,15 +92,35 @@ const requireLogin = (request, response, next) => {
 };
 
 // WebSocket setup for real-time communication
-const { app: wsApp } = WebSocket(app);
-wsApp.ws("/chat", (ws, req) => {
-  // Handle WebSocket messages
-  ws.on("message", (msg) => {
-    wsApp.getWss().clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(msg);
-      }
-    });
+const expressWs = WebSocket(app);
+
+expressWs.app.ws("/chat", (ws, req) => {
+  ws.on("message", async (msg) => {
+    try {
+      const { senderId, content } = JSON.parse(msg);
+
+      const message = new Message({
+        sender: senderId,
+        content,
+      });
+
+      await message.save();
+      console.log("Saved message:", message);
+
+      const broadcastMessage = {
+        content: message.content,
+        sender: message.sender,
+        createdAt: message.createdAt,
+      };
+
+      expressWs.getWss().clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(broadcastMessage));
+        }
+      });
+    } catch (error) {
+      console.error("Error handling WebSocket message:", error);
+    }
   });
 });
 
