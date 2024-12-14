@@ -1,10 +1,12 @@
 <%- include('partials/header', { title: "Profile" }) %>
 
-<div class="main-content">
-   <h1>User Profile</h1>
-   <p></p>
+<div class="main-content profile">
+   <h1><%= username %>'s Profile</h1>
+   <div class="profile-picture">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" alt="<%= username %>'s Profile Picture" />
+   </div>
    <p><strong>Username: </strong> <%= username %></p>
    <p><strong>Join Date: </strong> <%= joinDate %></p>
    <p></p>
-   <a href="/chat" class="action-button">Return to Chat</a>
+   <a href="/users" class="action-button">View Other Users</a>
 </div>

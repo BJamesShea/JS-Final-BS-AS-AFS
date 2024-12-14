@@ -371,6 +371,18 @@ app.get("/profile/:username", requireLogin, async (request, response) => {
   }
 });
 
+// Route to view all user profiles
+app.get("/users", requireLogin, async (req, res) => {
+  try {
+    const users = await User.find({}, "username createsAt");
+    console.log("Users retrieved:", users);
+    res.render("users", { users });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error retrieving users");
+  }
+});
+
 // 404 handler for undefined routes
 app.use((req, res) => {
   res.status(404).send("Page not found");

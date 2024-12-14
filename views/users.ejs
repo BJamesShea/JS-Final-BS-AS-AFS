@@ -1,0 +1,16 @@
+<%- include('partials/header', { title: "All Users"}) %>
+
+<div class="main-content">
+    <h1>Users</h1>
+    <div class="user-container">
+        <% users.forEach(user => { %>
+            <div class="user-profile">
+                <div class="profile-picture">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" alt="<%= user.username %>'s Profile Picture"/>
+                </div>
+                <p class="user-name"><%= user.username %></p>
+                <a href="/profile/<%= user.username %>" class="action-button">View Profile</a>
+            </div>
+        <% }) %>
+    </div>
+</div>
