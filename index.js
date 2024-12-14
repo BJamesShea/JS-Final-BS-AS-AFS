@@ -342,19 +342,75 @@ app.get("/admin", requireLogin, async (req, res) => {
 
 // Route to remove a user by admin
 app.post("/admin/remove-user", requireLogin, async (req, res) => {
+  if (req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+
   const { username } = req.body;
 
   try {
     if (!username) {
-      return res.status(404).send("Invalid request.");
+      return res.status(400).send("Invalid request: Username is required.");
     }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
     await User.deleteOne({ username });
+
+    console.log(`User ${username} deleted by admin ${req.session.user.username}`);
     res.redirect("/admin");
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
+    console.error("Error deleting user:", error);
+    res.status(500).send("Server error: Could not delete user.");
   }
 });
+
+
+// Route to logout a user by admin
+app.post("/admin/logout-user", requireLogin, async (req, res) => {
+  if (req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+
+  const { username } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    req.sessionStore.all((err, sessions) => {
+      if (err) {
+        console.error("Error fetching sessions:", err);
+        return res.status(500).send("Server error.");
+      }
+
+      const userSession = Object.keys(sessions).find(
+        (sessionId) => sessions[sessionId].user?.username === username
+      );
+
+      if (userSession) {
+        req.sessionStore.destroy(userSession, (err) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res.status(500).send("Error logging out user.");
+          }
+          res.redirect("/admin");
+        });
+      } else {
+        res.redirect("/admin");
+      }
+    });
+  } catch (error) {
+    console.error("Error logging out user:", error);
+    res.status(500).send("Server error.");
+  }
+});
+
 
 // Route to display a user profile
 app.get("/profile", requireLogin, async (request, response) => {
