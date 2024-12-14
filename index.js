@@ -19,6 +19,7 @@ db.once("open", () => {
   console.log("http://localhost:3000/");
 });
 
+// User Schema
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -26,6 +27,7 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Hash passwords before saving
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     const saltRounds = 10;
@@ -246,83 +248,35 @@ app.get("/admin", requireLogin, async (req, res) => {
   res.render("admin", { users });
 });
 
+// **Admin Logout User Route**
+app.post("/admin/logout-user", requireLogin, async (req, res) => {
+  if (req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+
+  const { username } = req.body;
+
+  try {
+    if (!username) {
+      return res.status(400).send("Invalid request. Username required.");
+    }
+
+    console.log(
+      `Admin ${req.session.user.username} is logging out user: ${username}`
+    );
+
+    res.redirect("/admin");
+  } catch (err) {
+    res.status(500).send("Internal server error.");
+  }
+});
+
 // **Logout Route**
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
     res.clearCookie("connect.sid");
     res.redirect("/unauthenticated");
   });
-});
-
-// Route to Remove a User
-app.post("/admin/remove-user", requireLogin, async (req, res) => {
-  if (req.session.user.role !== "admin") {
-    return res.status(403).send("Access denied. Admins only.");
-  }
-
-  const { username } = req.body;
-  try {
-    if (!username) {
-      return res.status(404).send("Invalid request.");
-    }
-    await User.deleteOne({ username });
-
-    console.log(
-      `User ${username} deleted by admin ${req.session.user.username}`
-    );
-    res.redirect("/admin");
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
-  }
-});
-
-// Route to display a user profile
-app.get("/profile", requireLogin, async (request, response) => {
-  try {
-    const user = await User.findOne({
-      username: request.session.user.username,
-    });
-    if (!user) {
-      return response.status(404).send("User not found.");
-    }
-    response.render("profile", {
-      username: user.username,
-      joinDate: user.createdAt.toDateString(),
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
-  }
-});
-
-// Route to view another user's profile by username
-app.get("/profile/:username", requireLogin, async (request, response) => {
-  try {
-    const user = await User.findOne({ username: request.params.username });
-    if (!user) {
-      return response.status(404).send("User not found");
-    }
-    response.render("profile", {
-      username: user.username,
-      joinDate: user.createdAt.toDateString(),
-    });
-  } catch (error) {
-    console.error(error);
-    response.status(500).send("Server error");
-  }
-});
-
-// Route to view all user profiles
-app.get("/users", requireLogin, async (req, res) => {
-  try {
-    const users = await User.find({}, "username createsAt");
-    console.log("Users retrieved:", users);
-    res.render("users", { users });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error retrieving users");
-  }
 });
 
 // 404 Handler
