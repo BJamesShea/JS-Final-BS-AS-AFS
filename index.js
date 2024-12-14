@@ -85,7 +85,6 @@ expressWs.app.ws("/chat", (ws, req) => {
   let currentUser;
 
   ws.on("message", async (msg) => {
-
     // Track connected users and display the count
     const parsedMessage = JSON.parse(msg);
 
@@ -130,8 +129,8 @@ expressWs.app.ws("/chat", (ws, req) => {
     } catch (error) {
       console.error("Error handling WebSocket message:", error);
     }
-  }); 
-  
+  });
+
   ws.on("close", () => {
     if (currentUser) {
       onlineUsers.delete(currentUser);
@@ -154,7 +153,29 @@ function broadcastOnlineCount() {
   });
 }
 
+const initializeAdmin = async () => {
+  try {
+    // Check if an admin user already exists
+    const existingAdmin = await User.exists({ role: "admin" });
 
+    // If no admin user exists, create one
+    if (!existingAdmin) {
+      const adminUser = new User({
+        username: "admin",
+        password: "admin123", // Default password for admin
+        role: "admin",
+      });
+
+      await adminUser.save(); // Save the new admin user to the database
+      console.log("Admin user created successfully.");
+    }
+  } catch (error) {
+    console.error("Error initializing admin:", error);
+  }
+};
+
+// Initialize the admin user when the application starts
+initializeAdmin();
 
 // Routes for handling login, signup, and authenticated access
 
