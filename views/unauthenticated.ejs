@@ -2,7 +2,7 @@
 
 <div class="main-content">
   <h1>Welcome to the Socket Chat</h1>
-  <p>Log in or register to begin chatting! Currently XX users online.</p>
+  <p>Log in or register to begin chatting! Currently <span id="online-users-count">0</span> users online.</p>
   <form action="/login" method="post" style="width: 300px">
     <% if (typeof errorMessage !== "undefined" && errorMessage) { %>
     <p class="error-message"><%= errorMessage %></p>
@@ -17,6 +17,21 @@
     </div>
     <button type="submit" class="action-button full-width">Log In</button>
   </form>
+  <script>
+    const socket = new WebSocket("ws://localhost:3000/chat");
+
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "onlineCount") {
+        document.getElementById("online-users-count").innerText = data.count;
+      }
+    });
+
+    socket.addEventListener("open", () => {
+      socket.send(JSON.stringify({ type: "join", username: "Guest" }));
+    });
+  </script>
+  
   <p style="font-size: 16px; margin-top: 30px">
     Don't have an account?&nbsp;
     <a href="/signup" class="register-link">Sign up now!</a>

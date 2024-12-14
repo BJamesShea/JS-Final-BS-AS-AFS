@@ -79,10 +79,25 @@ app.use((req, res, next) => {
 // WebSocket setup for real-time communication in chat
 const expressWs = WebSocket(app);
 
+const onlineUsers = new Set();
+
 expressWs.app.ws("/chat", (ws, req) => {
+  let currentUser;
+
   ws.on("message", async (msg) => {
+
+    // Track connected users and display the count
+    const parsedMessage = JSON.parse(msg);
+
+    if (parsedMessage.type === "join" && parsedMessage.username) {
+      currentUser = parsedMessage.username;
+      onlineUsers.add(currentUser);
+
+      broadcastOnlineCount();
+    }
+
     try {
-      const { senderId, content } = JSON.parse(msg);
+      const { senderId, content } = parsedMessage;
 
       // Validate senderId - check if it's a valid MongoDB ObjectId
       if (!senderId || !mongoose.Types.ObjectId.isValid(senderId)) {
@@ -115,8 +130,31 @@ expressWs.app.ws("/chat", (ws, req) => {
     } catch (error) {
       console.error("Error handling WebSocket message:", error);
     }
+  }); 
+  
+  ws.on("close", () => {
+    if (currentUser) {
+      onlineUsers.delete(currentUser);
+      broadcastOnlineCount();
+    }
   });
 });
+
+// Function to broadcast online user count
+function broadcastOnlineCount() {
+  const onlineCountMessage = JSON.stringify({
+    type: "onlineCount",
+    count: onlineUsers.size,
+  });
+
+  expressWs.getWss().clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(onlineCountMessage);
+    }
+  });
+}
+
+
 
 // Routes for handling login, signup, and authenticated access
 
