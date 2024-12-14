@@ -118,3 +118,64 @@ nav a:hover {
   color: rgba(93, 142, 251, 0.8);
   cursor: pointer;
 }
+
+.main-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 16px;
+  background-color: #f6f6f6;
+  color: #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.main-content table th,
+.main-content table td {
+  padding: 10px 15px;
+  text-align: left;
+}
+
+.main-content table th {
+  background-color: #5d8efb;
+  color: #fff;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.main-content table tr:nth-child(even) {
+  background-color: rgba(93, 142, 251, 0.1);
+}
+
+.main-content table tr:hover {
+  background-color: rgba(93, 142, 251, 0.2);
+  cursor: pointer;
+}
+
+.main-content table td {
+  border-bottom: 1px solid #ddd;
+}
+
+.main-content table td:last-child {
+  text-align: center;
+}
+
+.main-content table button {
+  background-color: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.main-content table button:hover {
+  background-color: #e60000;
+}
+
+.main-content table em {
+  color: #999;
+  font-style: italic;
+}
