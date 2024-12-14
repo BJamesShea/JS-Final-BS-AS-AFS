@@ -40,6 +40,43 @@ nav a:hover {
   transform: scale(1.1);
 }
 
+#chat {
+  text-align: center;
+}
+
+#chat-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  padding: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-left: 15px;
+  width: 80%;
+}
+
+#message-list {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+#message-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#message-input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
 .main-content {
   display: flex;
   justify-content: center;
@@ -120,7 +157,8 @@ nav a:hover {
 }
 
 .main-content table {
-  width: 100%;
+  width: 90%;
+  justify-content: center;
   border-collapse: collapse;
   margin-top: 20px;
   font-size: 16px;
