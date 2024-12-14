@@ -10,7 +10,10 @@
   </head>
   <body>
     <main>
-      <h1>Welcome to the Chat, <%= username %>!</h1>
+      <h1 id="chat">
+        Welcome to the Chat, <%= username %>! Currently
+        <span id="online-users-count">0</span> users online.
+      </h1>
       <div id="chat-container">
         <div id="message-list"></div>
 
