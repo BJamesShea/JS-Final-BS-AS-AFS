@@ -162,7 +162,12 @@ app.post("/login", async (req, res) => {
       userId: user._id,
     };
 
-    return res.redirect("/chat");
+    // Redirect based on role
+    if (user.role === "admin") {
+      return res.redirect("/admin");
+    } else {
+      return res.redirect("/chat");
+    }
   } catch (error) {
     console.error("Error during login:", error.message);
     res.render("unauthenticated", {
