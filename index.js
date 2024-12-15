@@ -22,7 +22,7 @@ db.once("open", () => {
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: "user" },
+  role: { type: String, default: "user" }, // admin/user
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -67,6 +67,14 @@ const requireLogin = (req, res, next) => {
   next();
 };
 
+// Middleware for admin access
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user || req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+  next();
+};
+
 // Add session user to res.locals
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
@@ -77,33 +85,28 @@ app.use((req, res, next) => {
 const expressWs = WebSocket(app);
 const onlineUsers = new Set();
 
-// WebSocket Connection
 expressWs.app.ws("/chat", (ws, req) => {
-  let currentUser;
+  let currentUser = null;
 
   ws.on("message", async (msg) => {
-    const parsedMessage = JSON.parse(msg);
+    try {
+      const parsedMessage = JSON.parse(msg);
 
-    // Handle "join" event
-    if (parsedMessage.type === "join" && parsedMessage.username) {
-      currentUser = parsedMessage.username;
-      onlineUsers.add(currentUser);
-      broadcastOnlineCount();
-      console.log(`${currentUser} joined the chat.`);
-    }
+      if (parsedMessage.type === "join") {
+        currentUser = parsedMessage.username;
+        onlineUsers.add(currentUser);
+        broadcastOnlineCount();
+        console.log(`${currentUser} joined the chat.`);
+      }
 
-    // Handle "message" event
-    if (parsedMessage.type === "message") {
-      const { senderId, content } = parsedMessage;
-
-      try {
+      if (parsedMessage.type === "message") {
+        const { senderId, content } = parsedMessage;
         const sender = await User.findById(senderId);
+
         if (sender) {
-          // Save the message to MongoDB
           const message = new Message({ sender: sender._id, content });
           await message.save();
 
-          // Broadcast message to all clients
           const broadcastMessage = {
             senderUsername: sender.username,
             content: message.content,
@@ -116,13 +119,13 @@ expressWs.app.ws("/chat", (ws, req) => {
             }
           });
 
-          console.log("Broadcasted message:", broadcastMessage);
+          console.log("Message broadcasted:", broadcastMessage);
         } else {
-          console.log("Sender not found:", senderId);
+          console.warn("Sender not found:", senderId);
         }
-      } catch (error) {
-        console.error("Error saving/broadcasting message:", error);
       }
+    } catch (error) {
+      console.error("Error processing WebSocket message:", error);
     }
   });
 
@@ -135,16 +138,17 @@ expressWs.app.ws("/chat", (ws, req) => {
   });
 });
 
-// Broadcast Online User Count
 function broadcastOnlineCount() {
-  const onlineCountMessage = JSON.stringify({
+  const countMessage = JSON.stringify({
     type: "onlineCount",
     count: onlineUsers.size,
   });
 
+  console.log("Broadcasting online user count:", countMessage);
+
   expressWs.getWss().clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(onlineCountMessage);
+      client.send(countMessage);
     }
   });
 }
@@ -165,126 +169,134 @@ const initializeAdmin = async () => {
 initializeAdmin();
 
 // Routes
+
+// Home Page
 app.get("/", (req, res) =>
-  res.render("unauthenticated", { title: "Dashboard" })
+  res.redirect(req.session.user ? "/chat" : "/unauthenticated")
 );
+
+// Unauthenticated View
 app.get("/unauthenticated", (req, res) =>
   res.render("unauthenticated", { errorMessage: null })
 );
+
+// Login Handler
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = await User.findOne({ username });
-  if (user && (await bcrypt.compare(password, user.password))) {
-    req.session.user = {
-      username: user.username,
-      role: user.role,
-      userId: user._id,
-    };
-    res.redirect("/chat");
-  } else {
-    res.render("unauthenticated", { errorMessage: "Invalid credentials." });
-  }
-});
-app.get("/signup", (req, res) => res.render("signup", { errorMessage: null }));
-app.post("/signup", async (req, res) => {
-  const { username, password } = req.body;
-  if (await User.exists({ username })) {
-    res.render("signup", { errorMessage: "Username already exists." });
-  } else {
-    const newUser = new User({ username, password });
-    await newUser.save();
-    req.session.user = { username, role: "user", userId: newUser._id };
-    res.redirect("/chat");
+  try {
+    const user = await User.findOne({ username });
+    if (user && (await bcrypt.compare(password, user.password))) {
+      req.session.user = {
+        username: user.username,
+        role: user.role,
+        userId: user._id,
+      };
+
+      console.log("User logged in:", user.username);
+
+      // Redirect to appropriate dashboard based on role
+      if (user.role === "admin") {
+        res.redirect("/admin");
+      } else {
+        res.redirect("/chat");
+      }
+    } else {
+      res.render("unauthenticated", { errorMessage: "Invalid credentials." });
+    }
+  } catch (error) {
+    console.error("Error during login:", error);
+    res.render("unauthenticated", {
+      errorMessage: "Error occurred. Try again.",
+    });
   }
 });
 
-// Chat route
-app.get("/chat", requireLogin, (req, res) =>
+// Signup View
+app.get("/signup", (req, res) => res.render("signup", { errorMessage: null }));
+
+// Signup Handler
+app.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    if (await User.exists({ username })) {
+      res.render("signup", { errorMessage: "Username already exists." });
+    } else {
+      const newUser = new User({ username, password });
+      await newUser.save();
+      req.session.user = { username, role: "user", userId: newUser._id };
+      res.redirect("/chat");
+    }
+  } catch (error) {
+    console.error("Error during signup:", error);
+    res.render("signup", { errorMessage: "Error occurred. Try again." });
+  }
+});
+
+// Chat Route
+app.get("/chat", requireLogin, (req, res) => {
   res.render("chat", {
     username: req.session.user.username,
     userId: req.session.user.userId,
-  })
-);
+  });
+});
 
-// Profile route
+// Profile Route
 app.get("/profile", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.user.userId);
-    res.render("profile", {
-      username: user.username,
-      joinDate: user.createdAt.toDateString(),
-    });
+    if (user) {
+      res.render("profile", {
+        username: user.username,
+        joinDate: user.createdAt.toDateString(),
+      });
+    } else {
+      res.status(404).send("User not found.");
+    }
   } catch (err) {
+    console.error("Error loading profile:", err);
     res.status(500).send("Error loading profile.");
   }
 });
 
-// View Other Users' Profiles
-app.get("/profile/:username", requireLogin, async (req, res) => {
+// View Other Profiles
+app.get("/profile/:id", requireLogin, async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.params.username });
-    if (!user) return res.status(404).send("User not found.");
-    res.render("profile", {
-      username: user.username,
-      joinDate: user.createdAt.toDateString(),
-    });
+    const user = await User.findById(req.params.id);
+    if (user) {
+      res.render("view-profile", {
+        username: user.username,
+        joinDate: user.createdAt.toDateString(),
+      });
+    } else {
+      res.status(404).send("User not found.");
+    }
   } catch (err) {
-    res.status(500).send("Error loading user profile.");
+    console.error("Error loading profile:", err);
+    res.status(500).send("Error loading profile.");
   }
 });
 
-// Users List Route
-app.get("/users", requireLogin, async (req, res) => {
+// Admin User Management - Remove User
+app.post("/admin/remove-user", requireAdmin, async (req, res) => {
   try {
-    const users = await User.find({}, "username createdAt");
-    res.render("users", { users });
+    const { userId } = req.body;
+    await User.findByIdAndDelete(userId);
+    console.log(`User with ID ${userId} deleted.`);
+    res.redirect("/admin");
   } catch (err) {
-    res.status(500).send("Error loading users.");
+    console.error("Error removing user:", err);
+    res.status(500).send("Error removing user.");
   }
 });
 
 // Admin Dashboard
-app.get("/admin", requireLogin, async (req, res) => {
-  if (req.session.user.role !== "admin") {
-    return res.redirect("/chat");
-  }
-  const users = await User.find({});
-  res.render("admin", { users });
-});
-
-// Admin Log Out User
-app.post("/admin/logout-user", requireLogin, async (req, res) => {
-  if (req.session.user.role !== "admin") {
-    return res.status(403).send("Access denied.");
-  }
-  // Logic for admin to log out a specific user
-});
-
-// Admin remove user
-app.post("/admin/remove-user", requireLogin, async (req, res) => {
-  if (req.session.user.role !== "admin") {
-    return res.status(403).send("Access denied. Admins only.");
-  }
-
-  const { username } = req.body;
-
+app.get("/admin", requireAdmin, async (req, res) => {
   try {
-    // Find and remove the user
-    const user = await User.findOneAndDelete({ username });
-
-    if (!user) {
-      return res.status(404).send("User not found.");
-    }
-
-    console.log(
-      `User ${username} removed by admin ${req.session.user.username}.`
-    );
-
-    // Redirect to admin dashboard after successful removal
-    res.redirect("/admin");
+    const users = await User.find({ role: "user" });
+    res.render("admin", { users });
   } catch (err) {
-    console.error("Error removing user:", err);
-    res.status(500).send("Internal server error.");
+    console.error("Error loading admin dashboard:", err);
+    res.status(500).send("Error loading admin dashboard.");
   }
 });
 
@@ -292,6 +304,7 @@ app.post("/admin/remove-user", requireLogin, async (req, res) => {
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
     res.clearCookie("connect.sid");
+    if (err) console.error("Error during logout:", err);
     res.redirect("/unauthenticated");
   });
 });

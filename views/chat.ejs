@@ -1,30 +1,40 @@
-<%- include('partials/header', { title: "Chat" }) %>
-
-<div id="chat-wrapper">
-  <div id="welcome-header">
-    Welcome, <%= username %>! Online Users:
-    <span id="online-users-count">0</span>
-  </div>
-
-  <!-- Chat Container for Messages -->
-  <div id="chat-container">
-    <div id="message-list"></div>
-  </div>
-
-  <!-- Message Input Form -->
-  <form id="message-form">
-    <input
-      id="message-input"
-      placeholder="Type your message..."
-      autocomplete="off"
-      required
-    />
-    <button type="submit" id="send-button">Send</button>
-  </form>
-</div>
-
-<script>
-  const username = "<%= username %>";
-  const userId = "<%= userId %>";
-</script>
-<script src="/frontend.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/profile">Profile</a>
+      <a href="/chat">Chat</a>
+      <a href="/logout">Logout</a>
+    </nav>
+    <div id="chat-wrapper">
+      <div id="welcome-header">
+        Welcome, <%= username %>! Online Users:
+        <span id="online-users-count">0</span>
+      </div>
+      <div id="chat-container">
+        <div id="message-list"></div>
+      </div>
+      <form id="message-form">
+        <input
+          id="message-input"
+          type="text"
+          placeholder="Type your message..."
+          autocomplete="off"
+          required
+        />
+        <button id="send-button" type="submit">Send</button>
+      </form>
+    </div>
+    <script>
+      const username = "<%= username %>";
+      const userId = "<%= userId %>";
+    </script>
+    <script src="/frontend.js"></script>
+  </body>
+</html>
