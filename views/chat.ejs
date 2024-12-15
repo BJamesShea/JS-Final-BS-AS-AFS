@@ -1,24 +1,26 @@
 <%- include('partials/header', { title: "Chat" }) %>
 
 <div id="chat-wrapper">
-  <h1>
+  <div id="welcome-header">
     Welcome, <%= username %>! Online Users:
     <span id="online-users-count">0</span>
-  </h1>
+  </div>
 
+  <!-- Chat Container for Messages -->
   <div id="chat-container">
     <div id="message-list"></div>
-    <form id="message-form">
-      <input
-        id="message-input"
-        type="text"
-        placeholder="Type your message..."
-        autocomplete="off"
-        required
-      />
-      <button id="send-button" type="submit">Send</button>
-    </form>
   </div>
+
+  <!-- Message Input Form -->
+  <form id="message-form">
+    <input
+      id="message-input"
+      placeholder="Type your message..."
+      autocomplete="off"
+      required
+    />
+    <button type="submit" id="send-button">Send</button>
+  </form>
 </div>
 
 <script>

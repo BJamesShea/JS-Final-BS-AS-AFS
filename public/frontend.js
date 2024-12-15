@@ -1,4 +1,4 @@
-// WebSocket setup
+// Establish WebSocket connection
 const webSocket = new WebSocket("ws://localhost:3000/chat");
 
 // WebSocket event handlers
@@ -10,33 +10,31 @@ webSocket.onopen = () => {
 webSocket.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
-  // Handle online user count update
+  // Update online user count
   if (data.type === "onlineCount") {
     document.getElementById("online-users-count").textContent = data.count;
   }
 
-  // Handle new messages
+  // Display incoming messages
   else if (data.senderUsername) {
-    console.log("Message received:", data); // Log to browser console
     displayMessage(data.senderUsername, data.content, data.createdAt);
   }
 };
 
-// Helper function to display messages
+// Display messages in chat
 function displayMessage(username, content, timestamp) {
   const messageList = document.getElementById("message-list");
   const messageItem = document.createElement("div");
-  messageItem.classList.add("message-item");
   messageItem.innerHTML = `
     <strong>${username}</strong>: ${content} <small>${new Date(
     timestamp
   ).toLocaleTimeString()}</small>
   `;
   messageList.appendChild(messageItem);
-  messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to the latest message
+  messageList.scrollTop = messageList.scrollHeight; // Auto-scroll
 }
 
-// Message submission handler
+// Send message handler
 document.getElementById("message-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const input = document.getElementById("message-input");
