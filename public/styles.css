@@ -364,23 +364,22 @@ nav a:hover {
   overflow-y: auto;
 }
 
-#message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Debugging visibility for message items */
+.message-item {
+  display: block !important;
+  color: black !important; /* Ensure text is visible */
+  background-color: white !important; /* Contrast with the background */
+  border: 1px solid black !important;
   padding: 10px;
-  background-color: yellow;
-  border: 2px solid red;
+  font-size: 1rem;
 }
 
-.message-item {
-  display: block;
-  padding: 10px;
-  border: 1px solid blue;
-  background-color: lightgreen;
-  color: black;
-  word-wrap: break-word;
-  min-height: 20px;
+#message-list {
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #fff !important;
+  border: 2px solid green !important; /* Highlight the message list */
+  gap: 5px;
 }
 
 #message-form {
@@ -421,4 +420,12 @@ nav a:hover {
   padding: 15px;
   background-color: #f6f6f6;
   border-bottom: 1px solid #ddd;
+}
+
+.message-item {
+  display: block !important;
+  color: red !important;
+  background-color: yellow !important;
+  border: 2px solid black !important;
+  font-size: 1.5rem !important;
 }

@@ -7,27 +7,33 @@ webSocket.onopen = () => {
   webSocket.send(JSON.stringify({ type: "join", username }));
 };
 
-// Handle incoming WebSocket messages
+setInterval(() => {
+  console.log("WebSocket readyState:", webSocket.readyState);
+}, 5000);
+
 webSocket.onmessage = (event) => {
+  console.log("Raw WebSocket data:", event.data); // Log raw data first
   try {
     const data = JSON.parse(event.data);
-    console.log(data);
-    console.log("WebSocket message received:", data);
+    console.log("Parsed WebSocket message:", data);
 
-    // Handle online user count updates
     if (data.type === "onlineCount") {
       const onlineUsersCountElement =
         document.getElementById("online-users-count");
       if (onlineUsersCountElement) {
         onlineUsersCountElement.textContent = data.count;
-        console.log("Updated online users count:", data.count);
       }
     }
 
-    // Handle incoming chat messages
     if (data.senderUsername && data.content) {
-      console.log("Chat message received:", data);
+      console.log("Calling displayMessage with:", {
+        username: data.senderUsername,
+        content: data.content,
+        createdAt: data.createdAt,
+      });
       displayMessage(data.senderUsername, data.content, data.createdAt);
+    } else {
+      console.warn("Invalid message data received:", data);
     }
   } catch (error) {
     console.error("Error processing WebSocket message:", error);
@@ -43,16 +49,26 @@ webSocket.onclose = () => {
   console.warn("WebSocket connection closed.");
 };
 
-// Function to display messages in the chat
 function displayMessage(username, content, timestamp) {
-  console.log("Inside display message function");
+  console.log("Inside displayMessage");
+  console.log("Params:", { username, content, timestamp });
+
+  if (!username || !content || !timestamp) {
+    console.error("Invalid parameters passed to displayMessage:", {
+      username,
+      content,
+      timestamp,
+    });
+    return;
+  }
+
   const messageList = document.getElementById("message-list");
 
   if (!messageList) {
     console.error("Message list container (#message-list) not found.");
     return;
   }
-  console.log(messageList);
+
   const messageItem = document.createElement("div");
   messageItem.classList.add("message-item");
   messageItem.innerHTML = `
@@ -61,8 +77,9 @@ function displayMessage(username, content, timestamp) {
   `;
 
   messageList.appendChild(messageItem);
-  messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to the newest message
-  console.log("Message appended to DOM:", messageItem.innerHTML);
+  messageList.scrollTop = messageList.scrollHeight;
+
+  console.log("Message appended to DOM:", messageItem);
 }
 
 // Message form submission handler

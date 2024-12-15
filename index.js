@@ -119,7 +119,7 @@ expressWs.app.ws("/chat", (ws, req) => {
             }
           });
 
-          console.log("Message broadcasted:", broadcastMessage);
+          console.log("Broadcasting message to clients:", broadcastMessage);
         } else {
           console.warn("Sender not found:", senderId);
         }
@@ -148,6 +148,7 @@ function broadcastOnlineCount() {
 
   expressWs.getWss().clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
+      console.log("Sending message to client...");
       client.send(countMessage);
     }
   });
@@ -315,7 +316,6 @@ app.get("/users", requireLogin, async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
-
 
 // Logout Route
 app.get("/logout", (req, res) => {
