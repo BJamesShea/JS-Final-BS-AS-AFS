@@ -15,9 +15,8 @@
     <div id="chat-wrapper">
       <div id="welcome-header">
         Welcome, <%= username %>! Online Users:
-        <span id="online-users-count">loading...</span>
+        <span id="online-users-count">0</span>
       </div>
-      <ul id="online-users-count"></ul>
       <div id="chat-container">
         <div id="message-list">
           <% messages.forEach(message => { %>
@@ -28,7 +27,6 @@
           <% }); %>
         </div>
       </div>
-
       <form id="message-form">
         <input
           id="message-input"
@@ -40,7 +38,10 @@
         <button id="send-button" type="submit">Send</button>
       </form>
     </div>
-    
+    <script>
+      const username = "<%= username %>";
+      const userId = "<%= userId %>";
+    </script>
     <script src="/frontend.js"></script>
   </body>
 </html>
