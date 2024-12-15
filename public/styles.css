@@ -378,7 +378,7 @@ nav a:hover {
   display: flex !important;
   flex-direction: column !important;
   background-color: #fff !important;
-  border: 2px solid green !important; /* Highlight the message list */
+  /* border: 2px solid green !important; Highlight the message list */
   gap: 5px;
 }
 
@@ -424,8 +424,10 @@ nav a:hover {
 
 .message-item {
   display: block !important;
-  color: red !important;
-  background-color: yellow !important;
+  color: rgb(0, 0, 0) !important;
+  background-color: darkgray !important;
   border: 2px solid black !important;
+  border-radius: 10px;
+  padding-bottom: 15px;
   font-size: 1.5rem !important;
 }
