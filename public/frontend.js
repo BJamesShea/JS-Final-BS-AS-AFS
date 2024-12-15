@@ -19,21 +19,11 @@ webSocket.onmessage = (event) => {
     }
 
     if (data.senderUsername && data.content) {
-      console.log("Calling displayMessage with:", {
-        username: data.senderUsername,
-        content: data.content,
-        createdAt: data.createdAt,
-      });
       displayMessage(data.senderUsername, data.content, data.createdAt);
     }
   } catch (error) {
     console.error("Error processing WebSocket message:", error);
   }
-};
-
-webSocket.onclose = () => {
-  console.warn("WebSocket closed. Reconnecting...");
-  setTimeout(() => location.reload(), 3000);
 };
 
 function displayMessage(username, content, timestamp) {
@@ -47,14 +37,14 @@ function displayMessage(username, content, timestamp) {
 
   const messageItem = document.createElement("div");
   messageItem.classList.add("message-item");
-  messageItem.textContent = `${username}: ${content} - ${new Date(
+  messageItem.innerHTML = `<strong>${username}:</strong> ${content} - ${new Date(
     timestamp
   ).toLocaleTimeString()}`;
 
   messageList.appendChild(messageItem);
   messageList.scrollTop = messageList.scrollHeight;
 
-  console.log("Message appended to DOM:", messageItem.textContent);
+  console.log("Message appended to DOM:", messageItem.innerHTML);
 }
 
 document.getElementById("message-form").addEventListener("submit", (e) => {

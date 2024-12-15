@@ -94,11 +94,6 @@ expressWs.app.ws("/chat", (ws, req) => {
       if (parsedMessage.type === "join") {
         currentUser = parsedMessage.username;
 
-        // Remove stale connections
-        activeClients.forEach((client) => {
-          if (client.currentUser === currentUser) client.terminate();
-        });
-
         ws.currentUser = currentUser;
         activeClients.add(ws);
         broadcastOnlineCount();
@@ -108,7 +103,6 @@ expressWs.app.ws("/chat", (ws, req) => {
       if (parsedMessage.type === "message") {
         const { senderId, content } = parsedMessage;
 
-        // Save message to DB
         const sender = await User.findById(senderId);
         if (sender) {
           const message = new Message({ sender: sender._id, content });
@@ -239,14 +233,23 @@ app.post("/signup", async (req, res) => {
 // Chat Route
 app.get("/chat", requireLogin, (req, res) => {
   let messageData = [];
-  Message.find().then((result) => {
-    messageData = result;
-    res.render("chat", {
-      username: req.session.user.username,
-      userId: req.session.user.userId,
-      messages: messageData,
+  Message.find()
+    .then((result) => {
+      messageData = result.map((msg) => ({
+        senderUsername: msg.sender.username,
+        content: msg.content,
+        createdAt: msg.createdAt.toISOString(),
+      }));
+      res.render("chat", {
+        username: req.session.user.username,
+        userId: req.session.user.userId,
+        messages: messageData,
+      });
+    })
+    .catch((err) => {
+      console.error("Error fetching messages:", err);
+      res.status(500).send("Error fetching messages.");
     });
-  });
 });
 
 // Profile Route
