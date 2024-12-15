@@ -1,34 +1,42 @@
-// Establish WebSocket connection
+// WebSocket setup
 const webSocket = new WebSocket("ws://localhost:3000/chat");
 
-// Join chat on WebSocket open
+// WebSocket event handlers
 webSocket.onopen = () => {
+  console.log("WebSocket connection established.");
   webSocket.send(JSON.stringify({ type: "join", username }));
 };
 
-// Handle WebSocket messages
-webSocket.addEventListener("message", (event) => {
+webSocket.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
+  // Handle online user count update
   if (data.type === "onlineCount") {
     document.getElementById("online-users-count").textContent = data.count;
-  } else if (data.senderUsername) {
+  }
+
+  // Handle new messages
+  else if (data.senderUsername) {
+    console.log("Message received:", data); // Log to browser console
     displayMessage(data.senderUsername, data.content, data.createdAt);
   }
-});
+};
 
-// Display messages in chat
+// Helper function to display messages
 function displayMessage(username, content, timestamp) {
   const messageList = document.getElementById("message-list");
   const messageItem = document.createElement("div");
-  messageItem.innerHTML = `<strong>${username}</strong>: ${content} <small>${new Date(
+  messageItem.classList.add("message-item");
+  messageItem.innerHTML = `
+    <strong>${username}</strong>: ${content} <small>${new Date(
     timestamp
-  ).toLocaleTimeString()}</small>`;
+  ).toLocaleTimeString()}</small>
+  `;
   messageList.appendChild(messageItem);
-  messageList.scrollTop = messageList.scrollHeight;
+  messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to the latest message
 }
 
-// Handle sending a message
+// Message submission handler
 document.getElementById("message-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const input = document.getElementById("message-input");
@@ -40,6 +48,6 @@ document.getElementById("message-form").addEventListener("submit", (e) => {
         content: input.value,
       })
     );
-    input.value = "";
+    input.value = ""; // Clear input field after sending
   }
 });

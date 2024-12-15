@@ -8,10 +8,9 @@ const mongoose = require("mongoose");
 
 const app = express();
 
-// Connect to MongoDB using Mongoose
+// MongoDB Connection
 const mongoURI = "mongodb://localhost:27017/chat_app";
 mongoose.connect(mongoURI, {});
-
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection error:"));
 db.once("open", () => {
@@ -27,7 +26,6 @@ const userSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Hash passwords before saving
 userSchema.pre("save", async function (next) {
   if (this.isModified("password")) {
     const saltRounds = 10;
@@ -61,7 +59,7 @@ app.use(
   })
 );
 
-// Middleware
+// Middleware for login
 const requireLogin = (req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/unauthenticated");
@@ -75,7 +73,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket setup
+// WebSocket Setup
 const expressWs = WebSocket(app);
 const onlineUsers = new Set();
 
@@ -97,25 +95,33 @@ expressWs.app.ws("/chat", (ws, req) => {
     // Handle "message" event
     if (parsedMessage.type === "message") {
       const { senderId, content } = parsedMessage;
-      const sender = await User.findById(senderId);
 
-      if (sender) {
-        const message = new Message({ sender: sender._id, content });
-        await message.save();
+      try {
+        const sender = await User.findById(senderId);
+        if (sender) {
+          // Save the message to MongoDB
+          const message = new Message({ sender: sender._id, content });
+          await message.save();
 
-        const broadcastMessage = {
-          senderUsername: sender.username,
-          content: message.content,
-          createdAt: message.createdAt.toISOString(),
-        };
+          // Broadcast message to all clients
+          const broadcastMessage = {
+            senderUsername: sender.username,
+            content: message.content,
+            createdAt: message.createdAt.toISOString(),
+          };
 
-        console.log("Broadcasting message:", broadcastMessage);
+          expressWs.getWss().clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(broadcastMessage));
+            }
+          });
 
-        expressWs.getWss().clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(broadcastMessage));
-          }
-        });
+          console.log("Broadcasted message:", broadcastMessage);
+        } else {
+          console.log("Sender not found:", senderId);
+        }
+      } catch (error) {
+        console.error("Error saving/broadcasting message:", error);
       }
     }
   });
@@ -136,8 +142,6 @@ function broadcastOnlineCount() {
     count: onlineUsers.size,
   });
 
-  console.log(`Online users: ${onlineUsers.size}`);
-
   expressWs.getWss().clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(onlineCountMessage);
@@ -145,7 +149,7 @@ function broadcastOnlineCount() {
   });
 }
 
-// Initialize admin user
+// Admin Initialization
 const initializeAdmin = async () => {
   const adminExists = await User.exists({ role: "admin" });
   if (!adminExists) {
@@ -194,7 +198,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// **Chat Route**
+// Chat route
 app.get("/chat", requireLogin, (req, res) =>
   res.render("chat", {
     username: req.session.user.username,
@@ -202,34 +206,34 @@ app.get("/chat", requireLogin, (req, res) =>
   })
 );
 
-// **Profile Route**
+// Profile route
 app.get("/profile", requireLogin, async (req, res) => {
   try {
     const user = await User.findById(req.session.user.userId);
     res.render("profile", {
       username: user.username,
-      joinDate: user.createdAt,
+      joinDate: user.createdAt.toDateString(),
     });
   } catch (err) {
     res.status(500).send("Error loading profile.");
   }
 });
 
-// **View Other Users' Profiles**
+// View Other Users' Profiles
 app.get("/profile/:username", requireLogin, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
     if (!user) return res.status(404).send("User not found.");
     res.render("profile", {
       username: user.username,
-      joinDate: user.createdAt,
+      joinDate: user.createdAt.toDateString(),
     });
   } catch (err) {
     res.status(500).send("Error loading user profile.");
   }
 });
 
-// **Users List Route**
+// Users List Route
 app.get("/users", requireLogin, async (req, res) => {
   try {
     const users = await User.find({}, "username createdAt");
@@ -239,7 +243,7 @@ app.get("/users", requireLogin, async (req, res) => {
   }
 });
 
-// **Admin Dashboard**
+// Admin Dashboard
 app.get("/admin", requireLogin, async (req, res) => {
   if (req.session.user.role !== "admin") {
     return res.redirect("/chat");
@@ -248,30 +252,15 @@ app.get("/admin", requireLogin, async (req, res) => {
   res.render("admin", { users });
 });
 
-// **Admin Logout User Route**
+// Admin Log Out User
 app.post("/admin/logout-user", requireLogin, async (req, res) => {
   if (req.session.user.role !== "admin") {
-    return res.status(403).send("Access denied. Admins only.");
+    return res.status(403).send("Access denied.");
   }
-
-  const { username } = req.body;
-
-  try {
-    if (!username) {
-      return res.status(400).send("Invalid request. Username required.");
-    }
-
-    console.log(
-      `Admin ${req.session.user.username} is logging out user: ${username}`
-    );
-
-    res.redirect("/admin");
-  } catch (err) {
-    res.status(500).send("Internal server error.");
-  }
+  // Logic for admin to log out a specific user
 });
 
-// **Logout Route**
+// Logout Route
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
     res.clearCookie("connect.sid");

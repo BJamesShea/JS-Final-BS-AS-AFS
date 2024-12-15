@@ -296,7 +296,7 @@ nav a:hover {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
-  color:#333;
+  color: #333;
 }
 
 .user-profile p {
@@ -321,4 +321,65 @@ nav a:hover {
 .user-profile a:hover {
   background-color: #4a7be5;
   color: yellow;
+}
+
+#chat-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 90vh;
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+#chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+#message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+#message-list .message-item {
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  background: #f1f1f1;
+  border-radius: 5px;
+}
+
+#message-form {
+  display: flex;
+  margin-top: 10px;
+}
+
+#message-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 1rem;
+}
+
+#send-button {
+  background-color: #5d8efb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  margin-left: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+#send-button:hover {
+  background-color: #4a7be5;
 }
