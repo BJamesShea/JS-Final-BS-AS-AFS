@@ -81,9 +81,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket Setup
 const expressWs = WebSocket(app);
-const onlineUsers = new Set();
+const activeClients = new Set();
 
 expressWs.app.ws("/chat", (ws, req) => {
   let currentUser = null;
@@ -94,44 +93,47 @@ expressWs.app.ws("/chat", (ws, req) => {
 
       if (parsedMessage.type === "join") {
         currentUser = parsedMessage.username;
-        onlineUsers.add(currentUser);
+
+        // Remove stale connections
+        activeClients.forEach((client) => {
+          if (client.currentUser === currentUser) client.terminate();
+        });
+
+        ws.currentUser = currentUser;
+        activeClients.add(ws);
         broadcastOnlineCount();
         console.log(`${currentUser} joined the chat.`);
       }
 
       if (parsedMessage.type === "message") {
         const { senderId, content } = parsedMessage;
-        const sender = await User.findById(senderId);
 
+        // Save message to DB
+        const sender = await User.findById(senderId);
         if (sender) {
           const message = new Message({ sender: sender._id, content });
           await message.save();
 
           const broadcastMessage = {
             senderUsername: sender.username,
-            content: message.content,
+            content,
             createdAt: message.createdAt.toISOString(),
           };
 
-          expressWs.getWss().clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(broadcastMessage));
-            }
-          });
-
           console.log("Broadcasting message to clients:", broadcastMessage);
+          broadcastMessageToClients(broadcastMessage);
         } else {
           console.warn("Sender not found:", senderId);
         }
       }
     } catch (error) {
-      console.error("Error processing WebSocket message:", error);
+      console.error("WebSocket error:", error);
     }
   });
 
   ws.on("close", () => {
     if (currentUser) {
-      onlineUsers.delete(currentUser);
+      activeClients.delete(ws);
       broadcastOnlineCount();
       console.log(`${currentUser} left the chat.`);
     }
@@ -139,18 +141,19 @@ expressWs.app.ws("/chat", (ws, req) => {
 });
 
 function broadcastOnlineCount() {
-  const countMessage = JSON.stringify({
+  const message = JSON.stringify({
     type: "onlineCount",
-    count: onlineUsers.size,
+    count: activeClients.size,
   });
+  activeClients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(message);
+  });
+}
 
-  console.log("Broadcasting online user count:", countMessage);
-
-  expressWs.getWss().clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      console.log("Sending message to client...");
-      client.send(countMessage);
-    }
+function broadcastMessageToClients(data) {
+  const message = JSON.stringify(data);
+  activeClients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(message);
   });
 }
 

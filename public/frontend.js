@@ -1,91 +1,67 @@
-// Establish WebSocket connection
 const webSocket = new WebSocket("ws://localhost:3000/chat");
 
-// Notify server when WebSocket connection is established
+console.log("Attempting WebSocket connection...");
+console.log("WebSocket URL: ws://localhost:3000/chat");
+
 webSocket.onopen = () => {
   console.log("WebSocket connection established.");
   webSocket.send(JSON.stringify({ type: "join", username }));
 };
 
-setInterval(() => {
-  console.log("WebSocket readyState:", webSocket.readyState);
-}, 5000);
-
 webSocket.onmessage = (event) => {
-  console.log("Raw WebSocket data:", event.data); // Log raw data first
+  console.log("Received WebSocket event:", event);
+  console.log("Raw WebSocket data:", event.data);
+
   try {
     const data = JSON.parse(event.data);
     console.log("Parsed WebSocket message:", data);
 
     if (data.type === "onlineCount") {
-      const onlineUsersCountElement =
-        document.getElementById("online-users-count");
-      if (onlineUsersCountElement) {
-        onlineUsersCountElement.textContent = data.count;
-      }
-    }
-
-    if (data.senderUsername && data.content) {
-      console.log("Calling displayMessage with:", {
-        username: data.senderUsername,
+      console.log("Online user count:", data.count);
+      document.getElementById("online-users-count").textContent = data.count;
+    } else if (data.senderUsername && data.content) {
+      console.log("Message received from server:", {
+        senderUsername: data.senderUsername,
         content: data.content,
-        createdAt: data.createdAt,
+        timestamp: data.createdAt,
       });
       displayMessage(data.senderUsername, data.content, data.createdAt);
     } else {
-      console.warn("Invalid message data received:", data);
+      console.warn("Unexpected message format:", data);
     }
   } catch (error) {
-    console.error("Error processing WebSocket message:", error);
+    console.error("Error parsing WebSocket message:", error);
   }
-};
-
-// Handle WebSocket errors and closure
-webSocket.onerror = (error) => {
-  console.error("WebSocket error:", error);
 };
 
 webSocket.onclose = () => {
-  console.warn("WebSocket connection closed.");
+  console.warn("WebSocket closed. Reconnecting...");
+  setTimeout(() => location.reload(), 3000);
 };
 
 function displayMessage(username, content, timestamp) {
-  console.log("Inside displayMessage");
-  console.log("Params:", { username, content, timestamp });
-
-  if (!username || !content || !timestamp) {
-    console.error("Invalid parameters passed to displayMessage:", {
-      username,
-      content,
-      timestamp,
-    });
-    return;
-  }
+  console.log("Appending message:", { username, content, timestamp });
 
   const messageList = document.getElementById("message-list");
-
   if (!messageList) {
-    console.error("Message list container (#message-list) not found.");
+    console.error("Message list container not found in DOM!");
     return;
   }
 
   const messageItem = document.createElement("div");
   messageItem.classList.add("message-item");
-  messageItem.innerHTML = `
-    <strong>${username}</strong>: ${content}
-    <small>${new Date(timestamp).toLocaleTimeString()}</small>
-  `;
+  messageItem.textContent = `${username}: ${content} - ${new Date(
+    timestamp
+  ).toLocaleTimeString()}`;
 
   messageList.appendChild(messageItem);
   messageList.scrollTop = messageList.scrollHeight;
 
-  console.log("Message appended to DOM:", messageItem);
+  console.log("Message appended to DOM:", messageItem.textContent);
 }
 
-// Message form submission handler
 document.getElementById("message-form").addEventListener("submit", (e) => {
   e.preventDefault();
-
   const input = document.getElementById("message-input");
   if (input.value.trim()) {
     webSocket.send(
@@ -95,9 +71,6 @@ document.getElementById("message-form").addEventListener("submit", (e) => {
         content: input.value.trim(),
       })
     );
-    console.log("Message sent to server:", input.value.trim());
-    input.value = ""; // Clear input
-  } else {
-    console.warn("Empty message. Ignored.");
+    input.value = "";
   }
 });
