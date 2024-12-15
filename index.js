@@ -207,7 +207,7 @@ app.get("/chat", requireLogin, (req, res) => {
     .populate("sender", "username")
     .then((messages) => {
       const messageData = messages.map((msg) => ({
-        senderUsername: msg.sender.username,
+        senderUsername: msg.sender ? msg.sender.username : "Unknown User", // Fallback for missing sender
         content: msg.content,
         createdAt: msg.createdAt.toISOString(),
       }));
@@ -219,7 +219,8 @@ app.get("/chat", requireLogin, (req, res) => {
       });
     })
     .catch((err) => {
-      console.error("Error fetching messages:", err);
+      console.error("Error fetching messages:", err.message); // Log the error message
+      console.error(err.stack); // Log the full error stack for debugging
       res.status(500).send("Error fetching messages.");
     });
 });
