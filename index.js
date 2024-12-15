@@ -242,11 +242,13 @@ app.get("/chat", requireLogin, (req, res) => {
   Message.find()
     .populate("sender", "username")
     .then((result) => {
-      const messageData = result.map((msg) => ({
-        senderUsername: msg.sender.username,
-        content: msg.content,
-        createdAt: msg.createdAt.toISOString(),
-      }));
+      const messageData = result
+        .filter((msg) => msg.sender)
+        .map((msg) => ({
+          senderUsername: msg.sender.username,
+          content: msg.content,
+          createdAt: msg.createdAt.toISOString(),
+        }));
       res.render("chat", {
         username: req.session.user.username,
         userId: req.session.user.userId,
