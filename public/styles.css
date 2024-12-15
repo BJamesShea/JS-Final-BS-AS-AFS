@@ -322,3 +322,20 @@ nav a:hover {
   background-color: #4a7be5;
   color: yellow;
 }
+
+.login-signup-btn {
+  background: #f6f6f6;
+  color: #5d8efb;
+  text-decoration: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 15px;
+  text-align: center;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.login-signup-btn:hover {
+  background: rgba(246, 246, 246, 0.8);
+  color: yellow;
+  cursor: pointer;
+}
