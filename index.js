@@ -260,6 +260,34 @@ app.post("/admin/logout-user", requireLogin, async (req, res) => {
   // Logic for admin to log out a specific user
 });
 
+// Admin remove user
+app.post("/admin/remove-user", requireLogin, async (req, res) => {
+  if (req.session.user.role !== "admin") {
+    return res.status(403).send("Access denied. Admins only.");
+  }
+
+  const { username } = req.body;
+
+  try {
+    // Find and remove the user
+    const user = await User.findOneAndDelete({ username });
+
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    console.log(
+      `User ${username} removed by admin ${req.session.user.username}.`
+    );
+
+    // Redirect to admin dashboard after successful removal
+    res.redirect("/admin");
+  } catch (err) {
+    console.error("Error removing user:", err);
+    res.status(500).send("Internal server error.");
+  }
+});
+
 // Logout Route
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
