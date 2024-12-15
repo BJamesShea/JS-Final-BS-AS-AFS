@@ -9,28 +9,25 @@ webSocket.onopen = () => {
 };
 
 webSocket.onmessage = (event) => {
-  console.log("Received WebSocket event:", event);
-  console.log("Raw WebSocket data:", event.data);
-
+  console.log("WebSocket message event fired! Raw message:", event.data);
   try {
     const data = JSON.parse(event.data);
-    console.log("Parsed WebSocket message:", data);
+    console.log("Parsed WebSocket data:", data);
 
     if (data.type === "onlineCount") {
-      console.log("Online user count:", data.count);
       document.getElementById("online-users-count").textContent = data.count;
-    } else if (data.senderUsername && data.content) {
-      console.log("Message received from server:", {
-        senderUsername: data.senderUsername,
+    }
+
+    if (data.senderUsername && data.content) {
+      console.log("Calling displayMessage with:", {
+        username: data.senderUsername,
         content: data.content,
-        timestamp: data.createdAt,
+        createdAt: data.createdAt,
       });
       displayMessage(data.senderUsername, data.content, data.createdAt);
-    } else {
-      console.warn("Unexpected message format:", data);
     }
   } catch (error) {
-    console.error("Error parsing WebSocket message:", error);
+    console.error("Error processing WebSocket message:", error);
   }
 };
 
