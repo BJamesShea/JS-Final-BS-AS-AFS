@@ -10,7 +10,7 @@ const app = express();
 
 // MongoDB Connection
 const mongoURI = "mongodb://localhost:27017/chat_app";
-mongoose.connect(mongoURI, {});
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true });
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "Connection error:"));
 db.once("open", () => {
@@ -81,7 +81,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Websocket setup
+// WebSocket Setup
 const expressWs = WebSocket(app);
 const onlineUsers = new Map(); // Map to store WebSocket connections and usernames
 
@@ -89,33 +89,37 @@ app.ws("/chat", (ws, req) => {
   let currentUser = null;
 
   ws.on("message", (msg) => {
-    const parsedMessage = JSON.parse(msg);
+    try {
+      const parsedMessage = JSON.parse(msg);
 
-    if (parsedMessage.type === "join" && parsedMessage.username) {
-      currentUser = parsedMessage.username;
-      onlineUsers.set(ws, currentUser); // Associate WebSocket connection with username
-      broadcastOnlineUsers();
-      console.log(`${currentUser} joined the chat.`);
-    }
+      if (parsedMessage.type === "join" && parsedMessage.username) {
+        currentUser = parsedMessage.username;
+        onlineUsers.set(ws, currentUser); // Associate WebSocket connection with username
+        broadcastOnlineUsers();
+        console.log(`${currentUser} joined the chat.`);
+      }
 
-    if (parsedMessage.type === "message") {
-      const { senderUsername, content } = parsedMessage;
+      if (parsedMessage.type === "message") {
+        const { senderUsername, content } = parsedMessage;
 
-      const broadcastMessage = {
-        type: "chatMessage",
-        senderUsername,
-        content,
-        createdAt: new Date().toISOString(),
-      };
+        const broadcastMessage = {
+          type: "chatMessage",
+          senderUsername,
+          content,
+          createdAt: new Date().toISOString(),
+        };
 
-      // Broadcast the message to all connected clients
-      expressWs.getWss().clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(broadcastMessage));
-        }
-      });
+        // Broadcast the message to all connected clients
+        expressWs.getWss().clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(broadcastMessage));
+          }
+        });
 
-      console.log("Broadcasted message:", broadcastMessage);
+        console.log("Broadcasted message:", broadcastMessage);
+      }
+    } catch (error) {
+      console.error("Error handling WebSocket message:", error);
     }
   });
 
@@ -128,7 +132,6 @@ app.ws("/chat", (ws, req) => {
   });
 });
 
-
 // Broadcast the list of online users to all clients
 function broadcastOnlineUsers() {
   const userList = Array.from(onlineUsers.values()); // Extract usernames from the Map
@@ -138,16 +141,14 @@ function broadcastOnlineUsers() {
     users: userList,
   });
 
-  expressWs.getWss().clients.forEach((client) => {
+  onlineUsers.forEach((_, client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(onlineUsersMessage);
     }
-
   });
 
   console.log("Broadcast online users:", userList);
 }
-
 
 // Admin Initialization
 const initializeAdmin = async () => {
@@ -190,21 +191,37 @@ app.post("/login", async (req, res) => {
 
       console.log("User logged in:", user.username);
 
-      // Redirect to appropriate dashboard based on role
-      if (user.role === "admin") {
-        res.redirect("/admin");
-      } else {
-        res.redirect("/chat");
-      }
+      res.redirect("/chat");
     } else {
       res.render("unauthenticated", { errorMessage: "Invalid credentials." });
     }
   } catch (error) {
     console.error("Error during login:", error);
-    res.render("unauthenticated", {
-      errorMessage: "Error occurred. Try again.",
-    });
+    res.render("unauthenticated", { errorMessage: "Error occurred. Try again." });
   }
+});
+
+// Chat Route
+app.get("/chat", requireLogin, (req, res) => {
+  Message.find()
+    .populate("sender", "username")
+    .then((messages) => {
+      const messageData = messages.map((msg) => ({
+        senderUsername: msg.sender.username,
+        content: msg.content,
+        createdAt: msg.createdAt.toISOString(),
+      }));
+
+      res.render("chat", {
+        username: req.session.user.username,
+        userId: req.session.user.userId,
+        messages: messageData,
+      });
+    })
+    .catch((err) => {
+      console.error("Error fetching messages:", err);
+      res.status(500).send("Error fetching messages.");
+    });
 });
 
 // Signup View
@@ -227,34 +244,6 @@ app.post("/signup", async (req, res) => {
     res.render("signup", { errorMessage: "Error occurred. Try again." });
   }
 });
-
-// Chat Route
-app.get("/chat", requireLogin, (req, res) => {
-
-  res.render("chat", {
-    username: req.session.user.username, // Pass the logged-in user's username
-    userId: req.session.user.userId,
-  let messageData = [];
-  Message.find()
-    .then((result) => {
-      messageData = result.map((msg) => ({
-        senderUsername: msg.sender.username,
-        content: msg.content,
-        createdAt: msg.createdAt.toISOString(),
-      }));
-      res.render("chat", {
-        username: req.session.user.username,
-        userId: req.session.user.userId,
-        messages: messageData,
-      });
-    })
-    .catch((err) => {
-      console.error("Error fetching messages:", err);
-      res.status(500).send("Error fetching messages.");
-    });
-  });
-});
-
 
 // Profile Route
 app.get("/profile", requireLogin, async (req, res) => {
