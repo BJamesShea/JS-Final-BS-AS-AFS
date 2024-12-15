@@ -81,22 +81,16 @@ app.use((req, res, next) => {
   next();
 });
 
-<<<<<<< HEAD
 // Websocket setup
 const expressWs = WebSocket(app);
 const onlineUsers = new Map(); // Map to store WebSocket connections and usernames
-=======
-const expressWs = WebSocket(app);
-const activeClients = new Set();
->>>>>>> a7ec288b4c6c6eada0df5ddb4405ca3e09ef8597
 
-expressWs.app.ws("/chat", (ws, req) => {
+app.ws("/chat", (ws, req) => {
   let currentUser = null;
 
   ws.on("message", (msg) => {
     const parsedMessage = JSON.parse(msg);
 
-<<<<<<< HEAD
     if (parsedMessage.type === "join" && parsedMessage.username) {
       currentUser = parsedMessage.username;
       onlineUsers.set(ws, currentUser); // Associate WebSocket connection with username
@@ -122,63 +116,18 @@ expressWs.app.ws("/chat", (ws, req) => {
       });
 
       console.log("Broadcasted message:", broadcastMessage);
-=======
-      if (parsedMessage.type === "join") {
-        currentUser = parsedMessage.username;
-
-        // Remove stale connections
-        activeClients.forEach((client) => {
-          if (client.currentUser === currentUser) client.terminate();
-        });
-
-        ws.currentUser = currentUser;
-        activeClients.add(ws);
-        broadcastOnlineCount();
-        console.log(`${currentUser} joined the chat.`);
-      }
-
-      if (parsedMessage.type === "message") {
-        const { senderId, content } = parsedMessage;
-
-        // Save message to DB
-        const sender = await User.findById(senderId);
-        if (sender) {
-          const message = new Message({ sender: sender._id, content });
-          await message.save();
-
-          const broadcastMessage = {
-            senderUsername: sender.username,
-            content,
-            createdAt: message.createdAt.toISOString(),
-          };
-
-          console.log("Broadcasting message to clients:", broadcastMessage);
-          broadcastMessageToClients(broadcastMessage);
-        } else {
-          console.warn("Sender not found:", senderId);
-        }
-      }
-    } catch (error) {
-      console.error("WebSocket error:", error);
->>>>>>> a7ec288b4c6c6eada0df5ddb4405ca3e09ef8597
     }
   });
 
   ws.on("close", () => {
     if (currentUser) {
-<<<<<<< HEAD
       onlineUsers.delete(ws); // Remove the user when they disconnect
       broadcastOnlineUsers();
-=======
-      activeClients.delete(ws);
-      broadcastOnlineCount();
->>>>>>> a7ec288b4c6c6eada0df5ddb4405ca3e09ef8597
       console.log(`${currentUser} left the chat.`);
     }
   });
 });
 
-<<<<<<< HEAD
 
 // Broadcast the list of online users to all clients
 function broadcastOnlineUsers() {
@@ -193,22 +142,7 @@ function broadcastOnlineUsers() {
     if (client.readyState === WebSocket.OPEN) {
       client.send(onlineUsersMessage);
     }
-=======
-function broadcastOnlineCount() {
-  const message = JSON.stringify({
-    type: "onlineCount",
-    count: activeClients.size,
-  });
-  activeClients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(message);
-  });
-}
 
-function broadcastMessageToClients(data) {
-  const message = JSON.stringify(data);
-  activeClients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(message);
->>>>>>> a7ec288b4c6c6eada0df5ddb4405ca3e09ef8597
   });
 
   console.log("Broadcast online users:", userList);
@@ -296,20 +230,28 @@ app.post("/signup", async (req, res) => {
 
 // Chat Route
 app.get("/chat", requireLogin, (req, res) => {
-<<<<<<< HEAD
+
   res.render("chat", {
     username: req.session.user.username, // Pass the logged-in user's username
     userId: req.session.user.userId,
-=======
   let messageData = [];
-  Message.find().then((result) => {
-    messageData = result;
-    res.render("chat", {
-      username: req.session.user.username,
-      userId: req.session.user.userId,
-      messages: messageData,
+  Message.find()
+    .then((result) => {
+      messageData = result.map((msg) => ({
+        senderUsername: msg.sender.username,
+        content: msg.content,
+        createdAt: msg.createdAt.toISOString(),
+      }));
+      res.render("chat", {
+        username: req.session.user.username,
+        userId: req.session.user.userId,
+        messages: messageData,
+      });
+    })
+    .catch((err) => {
+      console.error("Error fetching messages:", err);
+      res.status(500).send("Error fetching messages.");
     });
->>>>>>> a7ec288b4c6c6eada0df5ddb4405ca3e09ef8597
   });
 });
 
