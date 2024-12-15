@@ -84,7 +84,7 @@ app.use((req, res, next) => {
 const expressWs = WebSocket(app);
 const activeClients = new Set();
 
-expressWs.app.ws("/chat", (ws, req) => {
+app.ws("/chat", (ws, req) => {
   let currentUser = null;
 
   ws.on("message", async (msg) => {
@@ -93,7 +93,6 @@ expressWs.app.ws("/chat", (ws, req) => {
 
       if (parsedMessage.type === "join") {
         currentUser = parsedMessage.username;
-
         ws.currentUser = currentUser;
         activeClients.add(ws);
         broadcastOnlineCount();
@@ -105,7 +104,11 @@ expressWs.app.ws("/chat", (ws, req) => {
 
         const sender = await User.findById(senderId);
         if (sender) {
-          const message = new Message({ sender: sender._id, content });
+          const message = new Message({
+            sender: sender._id,
+            senderUsername: sender.username, // Add senderUsername here
+            content,
+          });
           await message.save();
 
           const broadcastMessage = {
@@ -115,7 +118,9 @@ expressWs.app.ws("/chat", (ws, req) => {
           };
 
           console.log("Broadcasting message to clients:", broadcastMessage);
-          broadcastMessageToClients(broadcastMessage);
+          activeClients.forEach((client) =>
+            client.send(JSON.stringify(broadcastMessage))
+          );
         } else {
           console.warn("Sender not found:", senderId);
         }

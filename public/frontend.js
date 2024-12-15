@@ -8,11 +8,11 @@ webSocket.onopen = () => {
   webSocket.send(JSON.stringify({ type: "join", username }));
 };
 
+// WebSocket message event listener
 webSocket.onmessage = (event) => {
   console.log("WebSocket message event fired! Raw message:", event.data);
   try {
     const data = JSON.parse(event.data);
-    console.log("Parsed WebSocket data:", data);
 
     if (data.type === "onlineCount") {
       document.getElementById("online-users-count").textContent = data.count;
@@ -27,8 +27,6 @@ webSocket.onmessage = (event) => {
 };
 
 function displayMessage(username, content, timestamp) {
-  console.log("Appending message:", { username, content, timestamp });
-
   const messageList = document.getElementById("message-list");
   if (!messageList) {
     console.error("Message list container not found in DOM!");
