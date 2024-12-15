@@ -81,77 +81,72 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket Setup
+// Websocket setup
 const expressWs = WebSocket(app);
-const onlineUsers = new Set();
+const onlineUsers = new Map(); // Map to store WebSocket connections and usernames
 
 expressWs.app.ws("/chat", (ws, req) => {
   let currentUser = null;
 
-  ws.on("message", async (msg) => {
-    try {
-      const parsedMessage = JSON.parse(msg);
+  ws.on("message", (msg) => {
+    const parsedMessage = JSON.parse(msg);
 
-      if (parsedMessage.type === "join") {
-        currentUser = parsedMessage.username;
-        onlineUsers.add(currentUser);
-        broadcastOnlineCount();
-        console.log(`${currentUser} joined the chat.`);
-      }
+    if (parsedMessage.type === "join" && parsedMessage.username) {
+      currentUser = parsedMessage.username;
+      onlineUsers.set(ws, currentUser); // Associate WebSocket connection with username
+      broadcastOnlineUsers();
+      console.log(`${currentUser} joined the chat.`);
+    }
 
-      if (parsedMessage.type === "message") {
-        const { senderId, content } = parsedMessage;
-        const sender = await User.findById(senderId);
+    if (parsedMessage.type === "message") {
+      const { senderUsername, content } = parsedMessage;
 
-        if (sender) {
-          const message = new Message({ sender: sender._id, content });
-          await message.save();
+      const broadcastMessage = {
+        type: "chatMessage",
+        senderUsername,
+        content,
+        createdAt: new Date().toISOString(),
+      };
 
-          const broadcastMessage = {
-            senderUsername: sender.username,
-            content: message.content,
-            createdAt: message.createdAt.toISOString(),
-          };
-
-          expressWs.getWss().clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(broadcastMessage));
-            }
-          });
-
-          console.log("Message broadcasted:", broadcastMessage);
-        } else {
-          console.warn("Sender not found:", senderId);
+      // Broadcast the message to all connected clients
+      expressWs.getWss().clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(broadcastMessage));
         }
-      }
-    } catch (error) {
-      console.error("Error processing WebSocket message:", error);
+      });
+
+      console.log("Broadcasted message:", broadcastMessage);
     }
   });
 
   ws.on("close", () => {
     if (currentUser) {
-      onlineUsers.delete(currentUser);
-      broadcastOnlineCount();
+      onlineUsers.delete(ws); // Remove the user when they disconnect
+      broadcastOnlineUsers();
       console.log(`${currentUser} left the chat.`);
     }
   });
 });
 
-function broadcastOnlineCount() {
-  const countMessage = JSON.stringify({
-    type: "onlineCount",
-    count: onlineUsers.size,
-  });
 
-  console.log("Broadcasting online user count:", countMessage);
+// Broadcast the list of online users to all clients
+function broadcastOnlineUsers() {
+  const userList = Array.from(onlineUsers.values()); // Extract usernames from the Map
+  const onlineUsersMessage = JSON.stringify({
+    type: "onlineUsers",
+    count: userList.length,
+    users: userList,
+  });
 
   expressWs.getWss().clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(countMessage);
+      client.send(onlineUsersMessage);
     }
   });
+
+  console.log("Broadcast online users:", userList);
 }
+
 
 // Admin Initialization
 const initializeAdmin = async () => {
@@ -235,10 +230,11 @@ app.post("/signup", async (req, res) => {
 // Chat Route
 app.get("/chat", requireLogin, (req, res) => {
   res.render("chat", {
-    username: req.session.user.username,
+    username: req.session.user.username, // Pass the logged-in user's username
     userId: req.session.user.userId,
   });
 });
+
 
 // Profile Route
 app.get("/profile", requireLogin, async (req, res) => {
@@ -259,22 +255,29 @@ app.get("/profile", requireLogin, async (req, res) => {
 });
 
 // View Other Profiles
-app.get("/profile/:id", requireLogin, async (req, res) => {
+app.get("/profile/:username", requireLogin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    if (user) {
-      res.render("view-profile", {
-        username: user.username,
-        joinDate: user.createdAt.toDateString(),
-      });
-    } else {
-      res.status(404).send("User not found.");
+    // Fetch user by username
+    const user = await User.findOne({ username: req.params.username });
+
+    // Handle user not found
+    if (!user) {
+      console.error("User not found:", req.params.username);
+      return res.status(404).render("error", { message: "User not found." });
     }
+
+    // Render the user's profile
+    res.render("profile", {
+      username: user.username,
+      joinDate: user.createdAt.toDateString(),
+    });
   } catch (err) {
     console.error("Error loading profile:", err);
-    res.status(500).send("Error loading profile.");
+    res.status(500).render("error", { message: "Failed to load user profile." });
   }
 });
+
+
 
 // Admin User Management - Remove User
 app.post("/admin/remove-user", requireAdmin, async (req, res) => {

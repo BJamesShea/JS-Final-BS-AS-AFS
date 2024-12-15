@@ -1,85 +1,58 @@
-// Establish WebSocket connection
-const webSocket = new WebSocket("ws://localhost:3000/chat");
+const socket = new WebSocket("ws://localhost:3000/chat");
+const username = document.getElementById("username").value; // Dynamically retrieve username
+const userId = document.getElementById("userId").value; // Dynamically retrieve userId
 
-// Notify server when WebSocket connection is established
-webSocket.onopen = () => {
+// Handle WebSocket connection and events
+socket.addEventListener("open", () => {
   console.log("WebSocket connection established.");
-  webSocket.send(JSON.stringify({ type: "join", username }));
-};
+  socket.send(JSON.stringify({ type: "join", username })); // Send 'join' event with username
+});
 
-// Handle incoming WebSocket messages
-webSocket.onmessage = (event) => {
-  try {
-    const data = JSON.parse(event.data);
+socket.addEventListener("message", (event) => {
+  const data = JSON.parse(event.data);
 
-    console.log("WebSocket message received:", data);
-
-    // Handle online user count updates
-    if (data.type === "onlineCount") {
-      const onlineUsersCountElement =
-        document.getElementById("online-users-count");
-      if (onlineUsersCountElement) {
-        onlineUsersCountElement.textContent = data.count;
-        console.log("Updated online users count:", data.count);
-      }
+  if (data.type === "onlineUsers") {
+    // Update the online users count
+    const onlineUsersCountElement = document.getElementById("online-users-count");
+    if (onlineUsersCountElement) {
+      onlineUsersCountElement.textContent = data.count; // Update online count
     }
 
-    // Handle incoming chat messages
-    if (data.senderUsername && data.content) {
-      console.log("Chat message received:", data);
-      displayMessage(data.senderUsername, data.content, data.createdAt);
+    // Display the online user list
+    const onlineUsersList = document.getElementById("online-users-list");
+    if (onlineUsersList) {
+      onlineUsersList.innerHTML = ""; // Clear previous list
+      data.users.forEach((user) => {
+        const listItem = document.createElement("li");
+        listItem.textContent = user;
+        onlineUsersList.appendChild(listItem);
+      });
     }
-  } catch (error) {
-    console.error("Error processing WebSocket message:", error);
-  }
-};
-
-// Handle WebSocket errors and closure
-webSocket.onerror = (error) => {
-  console.error("WebSocket error:", error);
-};
-
-webSocket.onclose = () => {
-  console.warn("WebSocket connection closed.");
-};
-
-// Function to display messages in the chat
-function displayMessage(username, content, timestamp) {
-  const messageList = document.getElementById("message-list");
-
-  if (!messageList) {
-    console.error("Message list container (#message-list) not found.");
-    return;
   }
 
-  const messageItem = document.createElement("div");
-  messageItem.classList.add("message-item");
-  messageItem.innerHTML = `
-    <strong>${username}</strong>: ${content}
-    <small>${new Date(timestamp).toLocaleTimeString()}</small>
-  `;
+  if (data.type === "chatMessage") {
+    // Append new chat message
+    const messageList = document.getElementById("message-list");
+    const messageItem = document.createElement("div");
+    messageItem.classList.add("message-item");
+    messageItem.innerHTML = `
+      <strong>${data.senderUsername}</strong>: ${data.content}
+      <small>${new Date(data.createdAt).toLocaleTimeString()}</small>
+    `;
+    messageList.appendChild(messageItem);
+    messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to the bottom
+  }
+});
 
-  messageList.appendChild(messageItem);
-  messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to the newest message
-  console.log("Message appended to DOM:", messageItem.innerHTML);
-}
+socket.addEventListener("error", (error) => console.error("WebSocket error:", error));
+socket.addEventListener("close", () => console.warn("WebSocket connection closed."));
 
-// Message form submission handler
+// Handle message form submission
 document.getElementById("message-form").addEventListener("submit", (e) => {
   e.preventDefault();
-
   const input = document.getElementById("message-input");
   if (input.value.trim()) {
-    webSocket.send(
-      JSON.stringify({
-        type: "message",
-        senderId: userId,
-        content: input.value.trim(),
-      })
-    );
-    console.log("Message sent to server:", input.value.trim());
-    input.value = ""; // Clear input
-  } else {
-    console.warn("Empty message. Ignored.");
+    socket.send(JSON.stringify({ type: "message", senderId: userId, content: input.value.trim() }));
+    input.value = ""; // Clear the input field
   }
 });
