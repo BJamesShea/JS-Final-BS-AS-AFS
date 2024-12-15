@@ -2,7 +2,10 @@
 
 <div class="main-content">
   <h1>Welcome to the Socket Chat</h1>
-  <p>Log in or register to begin chatting! Currently <span id="online-users-count">loading...</span> users online.</p>
+  <p>
+    Log in or register to begin chatting! Currently
+    <span id="online-users-count">loading...</span> users online.
+  </p>
   <p></p>
   <ul id="online-users-count"></ul>
   <p></p>
@@ -22,45 +25,45 @@
   </form>
   <script>
     const socket = new WebSocket("ws://localhost:3000/chat");
-const onlineUsersList = document.createElement("ul"); // Create a list for online users
-document.querySelector(".main-content").appendChild(onlineUsersList);
+    const onlineUsersList = document.createElement("ul"); // Create a list for online users
+    document.querySelector(".main-content").appendChild(onlineUsersList);
 
-// Update the number of online users and their names
-socket.addEventListener("message", (event) => {
-  const data = JSON.parse(event.data);
+    // Update the number of online users and their names
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
 
-  if (data.type === "onlineUsers") {
-    // Update the online users count
-    document.getElementById("online-users-count").innerText = data.count;
+      if (data.type === "onlineUsers") {
+        // Update the online users count
+        document.getElementById("online-users-count").innerText = data.count;
 
-    // Clear the current list and repopulate it
-    onlineUsersList.innerHTML = "";
-    data.users.forEach((user) => {
-      const listItem = document.createElement("li");
-      listItem.textContent = user;
-      onlineUsersList.appendChild(listItem);
+        // Clear the current list and repopulate it
+        onlineUsersList.innerHTML = "";
+        data.users.forEach((user) => {
+          const listItem = document.createElement("li");
+          listItem.textContent = user;
+          onlineUsersList.appendChild(listItem);
+        });
+      }
     });
-  }
-});
 
-// Handle WebSocket connection opening
-socket.addEventListener("open", () => {
-  console.log("Connected to the server.");
-  socket.send(JSON.stringify({ type: "join", username: "Guest" }));
-});
+    // Handle WebSocket connection opening
+    socket.addEventListener("open", () => {
+      console.log("Connected to the server.");
+      socket.send(JSON.stringify({ type: "join", username: "Guest" }));
+    });
 
-// Handle WebSocket disconnection
-socket.addEventListener("close", () => {
-  document.getElementById("online-users-count").innerText = "Connection lost.";
-  console.log("Disconnected from the server.");
-});
+    // Handle WebSocket disconnection
+    socket.addEventListener("close", () => {
+      document.getElementById("online-users-count").innerText =
+        "Connection lost.";
+      console.log("Disconnected from the server.");
+    });
 
-// Handle WebSocket errors
-socket.addEventListener("error", (error) => {
-  console.error("WebSocket error:", error);
-});
-
-</script>
+    // Handle WebSocket errors
+    socket.addEventListener("error", (error) => {
+      console.error("WebSocket error:", error);
+    });
+  </script>
   <p></p>
   <p style="font-size: 16px; margin-top: 30px">
     Don't have an account?&nbsp;

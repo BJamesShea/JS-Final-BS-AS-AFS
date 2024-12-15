@@ -1,3 +1,4 @@
+// Required modules
 const express = require("express");
 const bodyParser = require("body-parser");
 const session = require("express-session");
@@ -239,8 +240,9 @@ app.post("/signup", async (req, res) => {
 app.get("/chat", requireLogin, (req, res) => {
   let messageData = [];
   Message.find()
+    .populate("sender", "username")
     .then((result) => {
-      messageData = result.map((msg) => ({
+      const messageData = result.map((msg) => ({
         senderUsername: msg.sender.username,
         content: msg.content,
         createdAt: msg.createdAt.toISOString(),
@@ -275,21 +277,39 @@ app.get("/profile", requireLogin, async (req, res) => {
   }
 });
 
+// View all users
+app.get("/users", requireLogin, async (req, res) => {
+  try {
+    const users = await User.find({ role: "user" });
+    res.render("users", {
+      users: users.map((user) => ({
+        ...user.toObject(),
+        userId: user._id.toString(),
+      })),
+    });
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).send("Error fetching users.");
+  }
+});
 // View Other Profiles
 app.get("/profile/:id", requireLogin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const userId = new mongoose.Types.ObjectId(req.params.id);
+
+    const user = await User.findById(userId);
     if (user) {
-      res.render("view-profile", {
+      res.render("profile", {
         username: user.username,
         joinDate: user.createdAt.toDateString(),
       });
     } else {
-      res.status(404).send("User not found.");
+      console.log(`No user found with ID: ${userId}`);
+      return res.status(404).send("User not found.");
     }
   } catch (err) {
-    console.error("Error loading profile:", err);
-    res.status(500).send("Error loading profile.");
+    console.error("Detailed error loading profile:", err);
+    return res.status(400).send(`Invalid user ID: ${err.message}`);
   }
 });
 
@@ -312,34 +332,23 @@ app.get("/admin", requireAdmin, async (req, res) => {
     const users = await User.find({ role: "user" });
     res.render("admin", { users });
   } catch (err) {
-    console.error("Error loading admin dashboard:", err);
-    res.status(500).send("Error loading admin dashboard.");
+    console.error("Error fetching users for admin:", err);
+    res.status(500).send("Error fetching users.");
   }
 });
 
-// Users Route
-app.get("/users", requireLogin, async (req, res) => {
-  try {
-    const users = await User.find({}, "username createdAt"); // Fetch all users with selected fields
-    res.render("users", { users }); // Render the users.ejs view with the users data
-  } catch (err) {
-    console.error("Error fetching users:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// Logout Route
+// Logout Handler
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
-    res.clearCookie("connect.sid");
-    if (err) console.error("Error during logout:", err);
+    if (err) {
+      console.error("Logout error:", err);
+    }
     res.redirect("/unauthenticated");
   });
 });
 
-// 404 Handler
-app.use((req, res) => res.status(404).send("Page not found"));
-
-// Start Server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
