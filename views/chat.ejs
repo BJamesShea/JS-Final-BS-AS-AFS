@@ -1,37 +1,28 @@
 <%- include('partials/header', { title: "Chat" }) %>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main>
-      <h1>
-        Welcome, <%= username %>! Online Users:
-        <span id="online-users-count">0</span>
-      </h1>
-      <div id="chat-container">
-        <div id="message-list"></div>
-        <form id="message-form">
-          <input
-            id="message-input"
-            placeholder="Type your message..."
-            autocomplete="off"
-            required
-          />
-          <button type="submit">Send</button>
-        </form>
-      </div>
-    </main>
 
-    <script src="/frontend2.js"></script>
-    <script>
-      const username = "<%= username %>"; // Pass the logged-in user's username
-      const userId = "<%= userId %>"; // Pass the logged-in user's ID
-    </script>
-    <script src="/frontend.js"></script>
-  </body>
-</html>
+<div id="chat-wrapper">
+  <h1>
+    Welcome, <%= username %>! Online Users:
+    <span id="online-users-count">0</span>
+  </h1>
+
+  <div id="chat-container">
+    <div id="message-list"></div>
+    <form id="message-form">
+      <input
+        id="message-input"
+        type="text"
+        placeholder="Type your message..."
+        autocomplete="off"
+        required
+      />
+      <button id="send-button" type="submit">Send</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  const username = "<%= username %>";
+  const userId = "<%= userId %>";
+</script>
+<script src="/frontend.js"></script>
