@@ -305,6 +305,18 @@ app.get("/admin", requireAdmin, async (req, res) => {
   }
 });
 
+// Users Route
+app.get("/users", requireLogin, async (req, res) => {
+  try {
+    const users = await User.find({}, "username createdAt"); // Fetch all users with selected fields
+    res.render("users", { users }); // Render the users.ejs view with the users data
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+
 // Logout Route
 app.get("/logout", (req, res) => {
   req.session.destroy((err) => {
