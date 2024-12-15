@@ -3,6 +3,7 @@
 <div class="main-content">
   <h1>Welcome to the Socket Chat</h1>
   <p>Log in or register to begin chatting! Currently <span id="online-users-count">0</span> users online.</p>
+  <p></p>
   <form action="/login" method="post" style="width: 300px">
     <% if (typeof errorMessage !== "undefined" && errorMessage) { %>
     <p class="error-message"><%= errorMessage %></p>
@@ -31,9 +32,9 @@
       socket.send(JSON.stringify({ type: "join", username: "Guest" }));
     });
   </script>
-  
+  <p></p>
   <p style="font-size: 16px; margin-top: 30px">
     Don't have an account?&nbsp;
-    <a href="/signup" class="register-link">Sign up now!</a>
+    <a href="/signup" class="login-signup-btn">Sign up now!</a>
   </p>
 </div>
