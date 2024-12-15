@@ -54,6 +54,21 @@ Follow the steps below to set up and run the application locally on your machine
 - **MongoDB** installed and running locally
 - **MongoDB Database** Database named chat_app with two collections named users and messages
 
+**Schemas**
+
+const userSchema = new mongoose.Schema({
+username: { type: String, required: true, unique: true },
+password: { type: String, required: true },
+role: { type: String, default: "user" },
+createdAt: { type: Date, default: Date.now },
+});
+
+const messageSchema = new mongoose.Schema({
+sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+content: { type: String, required: true },
+createdAt: { type: Date, default: Date.now },
+});
+
 ---
 
 ### **Steps**
