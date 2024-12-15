@@ -234,9 +234,14 @@ app.post("/signup", async (req, res) => {
 
 // Chat Route
 app.get("/chat", requireLogin, (req, res) => {
-  res.render("chat", {
-    username: req.session.user.username,
-    userId: req.session.user.userId,
+  let messageData = [];
+  Message.find().then((result) => {
+    messageData = result;
+    res.render("chat", {
+      username: req.session.user.username,
+      userId: req.session.user.userId,
+      messages: messageData,
+    });
   });
 });
 

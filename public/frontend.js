@@ -11,7 +11,7 @@ webSocket.onopen = () => {
 webSocket.onmessage = (event) => {
   try {
     const data = JSON.parse(event.data);
-
+    console.log(data);
     console.log("WebSocket message received:", data);
 
     // Handle online user count updates
@@ -45,13 +45,14 @@ webSocket.onclose = () => {
 
 // Function to display messages in the chat
 function displayMessage(username, content, timestamp) {
+  console.log("Inside display message function");
   const messageList = document.getElementById("message-list");
 
   if (!messageList) {
     console.error("Message list container (#message-list) not found.");
     return;
   }
-
+  console.log(messageList);
   const messageItem = document.createElement("div");
   messageItem.classList.add("message-item");
   messageItem.innerHTML = `
