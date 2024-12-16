@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const data = JSON.parse(event.data);
 
-      // Debug: Ensure data type and users list exist
+      // Debug
       console.log("WebSocket data type:", data.type);
       console.log("Received WebSocket data:", data);
 

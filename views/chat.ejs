@@ -7,42 +7,36 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <!-- Navigation Menu -->
     <nav>
       <a href="/profile">Profile</a>
       <a href="/chat">Chat</a>
       <a href="/logout">Logout</a>
     </nav>
-
-    <!-- Chat Wrapper -->
     <div id="chat-wrapper">
-      <!-- Welcome Header with Online Users -->
       <div id="welcome-header">
         Welcome, <%= username %>! Online Users:
         <span id="online-users-count">0</span>
-
         <ul
           id="online-users-list"
           style="list-style: none; padding: 0; margin: 0"
-        >
-          <!-- List of online users will be dynamically populated here -->
-        </ul>
+        ></ul>
       </div>
-
-      <!-- Chat Container -->
       <div id="chat-container">
         <div id="message-list">
           <% messages.forEach(message => { %>
           <div class="message-item">
+            <span class="timestamp">
+              <%= new Date(message.createdAt).toLocaleTimeString([], { hour:
+              '2-digit', minute: '2-digit' }) %>
+            </span>
             <strong><%= message.senderUsername %>:</strong>
-            <%= message.content %> - <%= new
-            Date(message.createdAt).toLocaleTimeString() %>
+            <span><%= message.content %></span>
           </div>
+
           <% }); %>
         </div>
       </div>
 
-      <!-- Message Form -->
       <form id="message-form">
         <input
           id="message-input"
@@ -55,7 +49,6 @@
       </form>
     </div>
 
-    <!-- Pass Dynamic User Variables -->
     <script>
       const username = "<%= username %>";
       const userId = "<%= userId %>";
