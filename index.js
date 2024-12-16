@@ -86,28 +86,36 @@ const expressWs = WebSocket(app);
 const activeClients = new Set();
 
 app.ws("/chat", (ws, req) => {
-  let currentUser = null;
+  let currentUser = null; // Track the connected user's username
 
   ws.on("message", async (msg) => {
     try {
       const parsedMessage = JSON.parse(msg);
 
+      // Handle user joining the chat
       if (parsedMessage.type === "join") {
-        currentUser = parsedMessage.username;
-        ws.currentUser = currentUser;
-        activeClients.add(ws);
-        broadcastOnlineCount();
-        console.log(`${currentUser} joined the chat.`);
+        if (parsedMessage.username && parsedMessage.username !== "Guest") {
+          currentUser = parsedMessage.username;
+          ws.currentUser = currentUser;
+
+          activeClients.add(ws); // Add the socket to active clients
+          broadcastOnlineCount(); // Update all clients about online users
+          console.log(`${currentUser} joined the chat.`);
+        } else {
+          console.warn("Invalid username or Guest user ignored.");
+        }
       }
 
+      // Handle chat messages
       if (parsedMessage.type === "message") {
         const { senderId, content } = parsedMessage;
 
+        // Ensure sender is valid before processing the message
         const sender = await User.findById(senderId);
         if (sender) {
           const message = new Message({
             sender: sender._id,
-            senderUsername: sender.username, // Add senderUsername here
+            senderUsername: sender.username,
             content,
           });
           await message.save();
@@ -119,11 +127,13 @@ app.ws("/chat", (ws, req) => {
           };
 
           console.log("Broadcasting message to clients:", broadcastMessage);
-          activeClients.forEach((client) =>
-            client.send(JSON.stringify(broadcastMessage))
-          );
+          activeClients.forEach((client) => {
+            if (client.readyState === ws.OPEN) {
+              client.send(JSON.stringify(broadcastMessage));
+            }
+          });
         } else {
-          console.warn("Sender not found:", senderId);
+          console.warn("Sender not found or invalid:", senderId);
         }
       }
     } catch (error) {
@@ -131,22 +141,57 @@ app.ws("/chat", (ws, req) => {
     }
   });
 
+  // Handle user disconnecting
   ws.on("close", () => {
     if (currentUser) {
       activeClients.delete(ws);
-      broadcastOnlineCount();
+      broadcastOnlineCount(); // Update all clients about online users
       console.log(`${currentUser} left the chat.`);
     }
   });
 });
 
+// Function to broadcast the list of online users to all clients
 function broadcastOnlineCount() {
+  const onlineUsernames = Array.from(activeClients)
+    .map((client) => client.currentUser)
+    .filter((username) => username && username !== "Guest"); // Filter valid users only
+
+  console.log("Broadcasting online users:", onlineUsernames);
+
   const message = JSON.stringify({
-    type: "onlineCount",
-    count: activeClients.size,
+    type: "onlineUsers",
+    users: onlineUsernames,
   });
+
   activeClients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) client.send(message);
+    if (client.readyState === client.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+function broadcastOnlineCount() {
+  const onlineUsernames = Array.from(activeClients)
+    .map((client) => client.currentUser)
+    .filter(Boolean); // Collect valid usernames
+
+  console.log("Broadcasting online users:", onlineUsernames); // Debug log for outgoing data
+
+  // Construct the message to broadcast
+  const message = JSON.stringify({
+    type: "onlineUsers", // Type to be identified by the client
+    users: onlineUsernames, // Array of online usernames
+  });
+
+  // Send the message to all connected WebSocket clients
+  activeClients.forEach((client) => {
+    if (client.readyState === client.OPEN) {
+      client.send(message);
+      console.log("Sent online users message to client:", message);
+    } else {
+      console.warn("WebSocket client not open, skipping.");
+    }
   });
 }
 
